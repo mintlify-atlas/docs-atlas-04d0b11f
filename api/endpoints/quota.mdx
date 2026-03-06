@@ -16,7 +16,7 @@ The quota endpoint allows you to check your current API usage against your plan'
 Retrieve current usage statistics for categories and events.
 
 ```
-GET /api/usage
+GET /api/project/getUsage
 ```
 
 ### Response
@@ -222,7 +222,7 @@ When you reach your category limit:
 
 ```javascript
 const fetchUsageDashboard = async () => {
-  const response = await fetch('/api/usage', {
+  const response = await fetch('/api/project/getUsage', {
     credentials: 'include'
   });
   

@@ -16,7 +16,7 @@ Category endpoints allow you to manage event categories programmatically. Catego
 Retrieve all event categories for the authenticated user.
 
 ```
-GET /api/categories
+GET /api/category/getEventCategories
 ```
 
 ### Response
@@ -252,7 +252,7 @@ DELETE /api/categories
 Check if a category has received any events.
 
 ```
-GET /api/categories/poll?name={categoryName}
+GET /api/category/getEventCategories/poll?name={categoryName}
 ```
 
 ### Query Parameters

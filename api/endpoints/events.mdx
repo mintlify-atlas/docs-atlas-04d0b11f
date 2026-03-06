@@ -16,7 +16,7 @@ Event endpoints allow you to retrieve events from your categories with filtering
 Retrieve events for a specific category with time-based filtering and pagination.
 
 ```
-GET /api/events/{categoryName}
+GET /api/category/getEventsByCategoryName
 ```
 
 ### Query Parameters
@@ -57,7 +57,7 @@ GET /api/events/{categoryName}
 ### Request Example
 
 ```bash
-GET /api/events/bug?page=1&limit=25&timeRange=week
+GET /api/category/getEventsByCategoryName?name=bug&page=1&limit=25&timeRange=week
 ```
 
 ### Response
