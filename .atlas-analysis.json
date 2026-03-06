@@ -1,0 +1,114 @@
+{
+  "projectType": "saas",
+  "projectName": "PingPilot",
+  "projectDescription": "A full-stack event monitoring SaaS platform that delivers real-time notifications across multiple channels including Discord, Telegram, Email, and WhatsApp.",
+  "theme": "almond",
+  "primaryColor": "#3B82F6",
+  "lightColor": "#60A5FA",
+  "darkColor": "#2563EB",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/event-monitoring",
+              "features/notifications",
+              "features/event-categories",
+              "features/analytics-dashboard"
+            ]
+          },
+          {
+            "group": "Integrations",
+            "pages": [
+              "integrations/overview",
+              "integrations/discord",
+              "integrations/telegram",
+              "integrations/email",
+              "integrations/whatsapp"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/authentication",
+              "guides/api-keys",
+              "guides/creating-categories",
+              "guides/sending-events",
+              "guides/managing-notifications"
+            ]
+          },
+          {
+            "group": "Pricing & Plans",
+            "pages": [
+              "pricing/overview",
+              "pricing/free-plan",
+              "pricing/pro-plan",
+              "pricing/enterprise-plan",
+              "pricing/quotas"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/introduction",
+              "api/authentication"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/endpoints/send-event",
+              "api/endpoints/categories",
+              "api/endpoints/events",
+              "api/endpoints/quota"
+            ]
+          },
+          {
+            "group": "Error Handling",
+            "pages": [
+              "api/errors",
+              "api/rate-limits"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Real-time event monitoring and notifications",
+    "Multi-channel alert delivery (Discord, Telegram, Email, WhatsApp)",
+    "Customizable event categories with emojis and colors",
+    "Analytics dashboard with event tracking and filtering",
+    "Tiered subscription plans (Free, Pro, Enterprise)",
+    "API key authentication for secure event ingestion",
+    "Quota management based on subscription tier",
+    "Event history and delivery status tracking"
+  ],
+  "publicApiSurface": [
+    "POST /api/v1/event - Send event notification",
+    "GET /api/category/getEventCategories - List event categories",
+    "POST /api/category/createEventCategory - Create event category",
+    "DELETE /api/category/deleteCategory - Delete event category",
+    "GET /api/category/getEventsByCategoryName - Get events by category",
+    "GET /api/category/pollCategory - Poll category for events",
+    "POST /api/category/insertQuickstartCategories - Create quickstart categories",
+    "GET /api/auth/user - Get current user",
+    "POST /api/payment/createCheckoutSession - Create Stripe checkout session"
+  ]
+}
