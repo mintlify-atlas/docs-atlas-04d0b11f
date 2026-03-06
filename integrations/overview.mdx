@@ -1,0 +1,88 @@
+---
+title: 'Integrations Overview'
+description: 'Connect PingPilot with your favorite communication platforms'
+icon: 'plug'
+---
+
+PingPilot supports multiple notification channels to ensure you receive event alerts wherever you prefer. Configure your integrations once, and all events will be automatically delivered to your chosen platforms.
+
+## Available Integrations
+
+PingPilot currently supports the following notification channels:
+
+<CardGroup cols={2}>
+  <Card title="Discord" icon="discord" href="/integrations/discord">
+    Receive rich embedded notifications in your Discord DMs
+  </Card>
+  <Card title="Telegram" icon="telegram" href="/integrations/telegram">
+    Get instant alerts in your Telegram chat
+  </Card>
+  <Card title="Email" icon="envelope" href="/integrations/email">
+    Receive formatted HTML notifications via email
+  </Card>
+  <Card title="WhatsApp" icon="whatsapp" href="/integrations/whatsapp">
+    Get notifications on WhatsApp (Enterprise plan)
+  </Card>
+</CardGroup>
+
+## How Notifications Work
+
+When an event is triggered through the PingPilot API:
+
+1. **Authentication**: Your API key is validated
+2. **Event Processing**: The event data is formatted for each platform
+3. **Multi-Channel Delivery**: Notifications are sent simultaneously to all configured channels:
+   - **Discord**: Rich embeds with color coding and structured fields
+   - **Telegram**: Text-based notifications with emoji formatting
+   - **Email**: HTML-formatted emails with event details
+4. **Delivery Tracking**: Event delivery status is tracked in your dashboard
+
+## Configuration Requirements
+
+To receive notifications, you need to configure:
+
+<Steps>
+  <Step title="Set up Discord">
+    Add your Discord User ID in account settings. See the [Discord integration guide](/integrations/discord).
+  </Step>
+  <Step title="Link Telegram">
+    Connect your Telegram account using the PingPilot bot. See the [Telegram integration guide](/integrations/telegram).
+  </Step>
+  <Step title="Verify Email">
+    Your email is automatically configured from your account. See the [Email integration guide](/integrations/email).
+  </Step>
+</Steps>
+
+<Warning>
+  All integration channels must be configured before you can receive notifications. If any required integration is missing, the API will return an error.
+</Warning>
+
+## Notification Format
+
+Each platform receives notifications with:
+
+- **Event Category**: The category name with custom emoji
+- **Description**: Custom or default event description
+- **Timestamp**: When the event occurred
+- **Custom Fields**: Any additional data you send with the event
+- **Color Coding**: Visual categorization (Discord and Email)
+
+## Delivery Status
+
+You can track notification delivery status in your dashboard:
+
+- **DELIVERED**: Successfully sent to all channels
+- **FAILED**: One or more channels failed to receive the notification
+
+View detailed delivery logs for each event in the PingPilot dashboard.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Discord Setup" icon="discord" href="/integrations/discord">
+    Configure Discord notifications
+  </Card>
+  <Card title="Telegram Setup" icon="telegram" href="/integrations/telegram">
+    Link your Telegram account
+  </Card>
+</CardGroup>

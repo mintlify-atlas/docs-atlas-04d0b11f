@@ -1,0 +1,360 @@
+---
+title: 'Event Retrieval'
+description: 'Retrieve and query events from your categories'
+---
+
+## Overview
+
+Event endpoints allow you to retrieve events from your categories with filtering and pagination.
+
+<Info>
+  These endpoints use Hono.js server procedures and require authentication via session cookies (not Bearer tokens). They are primarily used by the PingPilot web dashboard.
+</Info>
+
+## Get Events by Category
+
+Retrieve events for a specific category with time-based filtering and pagination.
+
+```
+GET /api/events/{categoryName}
+```
+
+### Query Parameters
+
+<ParamField query="name" type="string" required>
+  Category name to retrieve events from.
+  
+  **Validation:**
+  - Must contain only letters, numbers, or hyphens
+  - Must match an existing category
+</ParamField>
+
+<ParamField query="page" type="number" required>
+  Page number for pagination (1-indexed).
+  
+  **Example:** `1`, `2`, `3`
+</ParamField>
+
+<ParamField query="limit" type="number" required>
+  Number of events per page.
+  
+  **Constraints:**
+  - Maximum: `50`
+  - Minimum: `1`
+  
+  **Example:** `10`, `25`, `50`
+</ParamField>
+
+<ParamField query="timeRange" type="string" required>
+  Time range to filter events.
+  
+  **Options:**
+  - `today` - Events from today (since midnight)
+  - `week` - Events from this week (since Sunday)
+  - `month` - Events from this month (since 1st of month)
+</ParamField>
+
+### Request Example
+
+```bash
+GET /api/events/bug?page=1&limit=25&timeRange=week
+```
+
+### Response
+
+<ResponseField name="events" type="array">
+  Array of event objects.
+</ResponseField>
+
+<ResponseField name="events[].id" type="string">
+  Unique event identifier.
+</ResponseField>
+
+<ResponseField name="events[].name" type="string">
+  Event category name.
+</ResponseField>
+
+<ResponseField name="events[].formattedMessage" type="string">
+  Formatted event message sent in notifications.
+</ResponseField>
+
+<ResponseField name="events[].fields" type="object">
+  Custom fields attached to the event.
+</ResponseField>
+
+<ResponseField name="events[].deliveryStatus" type="string">
+  Delivery status: `"DELIVERED"` or `"FAILED"`.
+</ResponseField>
+
+<ResponseField name="events[].createdAt" type="string">
+  ISO timestamp when event was created.
+</ResponseField>
+
+<ResponseField name="events[].userId" type="string">
+  User ID who owns this event.
+</ResponseField>
+
+<ResponseField name="events[].eventCategoryId" type="string">
+  Category ID this event belongs to.
+</ResponseField>
+
+<ResponseField name="eventsCount" type="number">
+  Total number of events matching the query (for pagination).
+</ResponseField>
+
+<ResponseField name="uniqueFieldCount" type="number">
+  Number of unique field keys used across all events in the time range.
+</ResponseField>
+
+<ResponseField name="success" type="boolean">
+  Whether the operation succeeded.
+</ResponseField>
+
+### Success Response
+
+```json
+{
+  "events": [
+    {
+      "id": "evt_clx1234567890",
+      "name": "bug",
+      "formattedMessage": "🐛 Bug\n\nDatabase connection timeout",
+      "fields": {
+        "severity": "high",
+        "service": "api-server",
+        "error_code": "ETIMEDOUT"
+      },
+      "deliveryStatus": "DELIVERED",
+      "createdAt": "2026-03-06T10:30:00.000Z",
+      "userId": "user_123",
+      "eventCategoryId": "cat_abc"
+    },
+    {
+      "id": "evt_clx0987654321",
+      "name": "bug",
+      "formattedMessage": "🐛 Bug\n\nMemory leak detected",
+      "fields": {
+        "severity": "medium",
+        "memory_usage": "2.5GB"
+      },
+      "deliveryStatus": "DELIVERED",
+      "createdAt": "2026-03-05T15:20:00.000Z",
+      "userId": "user_123",
+      "eventCategoryId": "cat_abc"
+    }
+  ],
+  "eventsCount": 47,
+  "uniqueFieldCount": 8,
+  "success": true
+}
+```
+
+### Error Response
+
+**Status Code:** `404 Not Found`
+
+```json
+{
+  "message": "Category \"nonexistent\" not found"
+}
+```
+
+---
+
+## Event Object Structure
+
+### Event Fields
+
+<ParamField name="id" type="string">
+  Unique identifier for the event (e.g., `"evt_clx1234567890"`).
+</ParamField>
+
+<ParamField name="name" type="string">
+  Category name this event belongs to (e.g., `"bug"`, `"sale"`).
+</ParamField>
+
+<ParamField name="formattedMessage" type="string">
+  The formatted message displayed in notifications. Format:
+  ```
+  {emoji} {Category}\n\n{description}
+  ```
+</ParamField>
+
+<ParamField name="fields" type="object">
+  Key-value pairs of custom data attached to the event. Values can be strings, numbers, or booleans.
+  
+  **Example:**
+  ```json
+  {
+    "user_id": "12345",
+    "amount": 99.99,
+    "success": false
+  }
+  ```
+</ParamField>
+
+<ParamField name="deliveryStatus" type="enum">
+  Indicates whether notification delivery succeeded.
+  
+  **Values:**
+  - `DELIVERED` - Successfully sent to all channels
+  - `FAILED` - Delivery to one or more channels failed
+</ParamField>
+
+<ParamField name="createdAt" type="string">
+  ISO 8601 timestamp of when the event was created.
+</ParamField>
+
+<ParamField name="userId" type="string">
+  ID of the user account that owns this event.
+</ParamField>
+
+<ParamField name="eventCategoryId" type="string">
+  ID of the category this event belongs to.
+</ParamField>
+
+---
+
+## Time Range Behavior
+
+### Today
+
+Returns events from midnight (00:00:00) of the current day in your timezone.
+
+```javascript
+startDate = startOfDay(now)
+// Example: 2026-03-06T00:00:00.000Z
+```
+
+### Week
+
+Returns events from the start of the current week (Sunday at 00:00:00).
+
+```javascript
+startDate = startOfWeek(now, { weekStartsOn: 0 })
+// Example: 2026-03-02T00:00:00.000Z (last Sunday)
+```
+
+### Month
+
+Returns events from the 1st of the current month at 00:00:00.
+
+```javascript
+startDate = startOfMonth(now)
+// Example: 2026-03-01T00:00:00.000Z
+```
+
+---
+
+## Pagination
+
+Events are returned in descending order by creation time (newest first).
+
+### Calculation
+
+```javascript
+const skip = (page - 1) * limit
+const take = limit
+
+// Example: page=2, limit=25
+// skip=25, take=25
+// Returns events 26-50
+```
+
+### Example: Fetching All Events
+
+```javascript
+const fetchAllEvents = async (categoryName, timeRange) => {
+  const limit = 50; // Max allowed
+  let page = 1;
+  let allEvents = [];
+  let hasMore = true;
+
+  while (hasMore) {
+    const response = await fetch(
+      `/api/events/${categoryName}?page=${page}&limit=${limit}&timeRange=${timeRange}`,
+      { credentials: 'include' }
+    );
+    
+    const data = await response.json();
+    allEvents = allEvents.concat(data.events);
+    
+    // Check if there are more pages
+    hasMore = data.events.length === limit;
+    page++;
+  }
+
+  return allEvents;
+};
+```
+
+---
+
+## Unique Field Count
+
+The `uniqueFieldCount` field indicates how many distinct field keys have been used across all events in the selected time range.
+
+**Example:**
+
+If you have 3 events:
+
+```json
+// Event 1
+{ "fields": { "severity": "high", "user_id": "123" } }
+
+// Event 2
+{ "fields": { "severity": "low", "error_code": "E001" } }
+
+// Event 3
+{ "fields": { "user_id": "456", "timestamp": "2026-03-06" } }
+```
+
+Unique field keys: `severity`, `user_id`, `error_code`, `timestamp`
+
+**Result:** `uniqueFieldCount: 4`
+
+---
+
+## Filtering Events
+
+### By Delivery Status
+
+To find failed events, filter the results client-side:
+
+```javascript
+const failedEvents = data.events.filter(
+  event => event.deliveryStatus === 'FAILED'
+);
+```
+
+### By Field Value
+
+To find events with specific field values:
+
+```javascript
+const highSeverityEvents = data.events.filter(
+  event => event.fields.severity === 'high'
+);
+```
+
+### By Date Range (Custom)
+
+For custom date ranges, fetch all events and filter:
+
+```javascript
+const eventsSince = (events, sinceDate) => {
+  const since = new Date(sinceDate);
+  return events.filter(event => new Date(event.createdAt) >= since);
+};
+```
+
+---
+
+## Best Practices
+
+- **Use appropriate time ranges** to limit result size
+- **Implement pagination** for large datasets (use max limit of 50)
+- **Cache results** when possible to reduce API calls
+- **Monitor delivery status** to identify notification failures
+- **Index field keys** client-side for fast filtering
+- **Handle empty results** gracefully (new categories may have no events)

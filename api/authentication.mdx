@@ -1,0 +1,115 @@
+---
+title: 'Authentication'
+description: 'Learn how to authenticate your API requests with Bearer tokens'
+---
+
+## Overview
+
+The PingPilot API uses Bearer token authentication. You must include your API key in the `Authorization` header of every request.
+
+## Getting Your API Key
+
+1. Log in to your PingPilot dashboard
+2. Navigate to **Account Settings**
+3. Copy your API key from the API section
+
+<Warning>
+  Keep your API key secure and never commit it to public repositories. Treat it like a password.
+</Warning>
+
+## Authentication Header
+
+Include your API key in the `Authorization` header using the Bearer scheme:
+
+```bash
+Authorization: Bearer YOUR_API_KEY
+```
+
+## Example Request
+
+```bash
+curl -X POST https://pingpilot.app/api/v1/event \
+  -H "Authorization: Bearer pk_1234567890abcdef" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "category": "sale",
+    "description": "New purchase completed"
+  }'
+```
+
+## Authentication Errors
+
+The API returns specific error messages for authentication failures:
+
+### Missing Authorization Header
+
+**Status Code:** `401 Unauthorized`
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+### Invalid Header Format
+
+If the header doesn't start with "Bearer ":
+
+**Status Code:** `401 Unauthorized`
+
+```json
+{
+  "message": "Invalid auth header format. Expected: 'Bearer [API_KEY]'"
+}
+```
+
+### Invalid API Key
+
+If the API key is empty, invalid, or not found:
+
+**Status Code:** `401 Unauthorized`
+
+```json
+{
+  "message": "Invalid API key"
+}
+```
+
+## Account Configuration Requirements
+
+After authentication succeeds, PingPilot verifies your account configuration:
+
+### Discord ID Required
+
+**Status Code:** `403 Forbidden`
+
+```json
+{
+  "message": "Please enter your discord ID in your account settings"
+}
+```
+
+<Info>
+  Configure your Discord ID in account settings to receive Discord notifications.
+</Info>
+
+### Telegram Username Required
+
+**Status Code:** `403 Forbidden`
+
+```json
+{
+  "message": "Telegram username not set. Please set your telegram username in your account settings to receive notifications"
+}
+```
+
+<Info>
+  Configure your Telegram username in account settings to receive Telegram notifications.
+</Info>
+
+## Security Best Practices
+
+- **Store securely**: Use environment variables or secret management services
+- **Rotate regularly**: Generate new API keys periodically
+- **Use HTTPS**: Always make requests over HTTPS
+- **Monitor usage**: Check your dashboard for unexpected API activity

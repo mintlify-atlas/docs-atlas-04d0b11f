@@ -1,0 +1,384 @@
+---
+title: 'Creating Event Categories'
+description: 'Learn how to create and customize event categories in PingPilot'
+icon: 'folder-open'
+---
+
+## Overview
+
+Event categories help you organize and visually distinguish different types of events in PingPilot. Each category has a name, color, and optional emoji that appear in your notifications.
+
+## What is a Category?
+
+A category defines a type of event that can occur in your application. For example:
+
+- `bug` - For error reports and bugs
+- `sale` - For successful purchases
+- `sign-up` - For new user registrations
+- `payment-failed` - For failed payment attempts
+
+## Category Properties
+
+Each category has three properties:
+
+<ResponseField name="name" type="string" required>
+  The unique identifier for the category. Must be lowercase and contain only letters, numbers, or hyphens.
+  
+  **Validation**: `/^[a-zA-Z0-9-]+$/`
+  
+  **Examples**: `bug`, `new-sale`, `user-signup`
+</ResponseField>
+
+<ResponseField name="color" type="string" required>
+  A hex color code that determines the visual appearance of the category in notifications.
+  
+  **Format**: `#RRGGBB` (e.g., `#FF6B6B`)
+  
+  **Storage**: Converted to integer format in the database
+</ResponseField>
+
+<ResponseField name="emoji" type="string" optional>
+  An optional emoji that appears with the category name in notifications.
+  
+  **Examples**: 🐛, 💰, 🎉, ⚠️
+</ResponseField>
+
+## Creating a Category
+
+### Via Dashboard
+
+<Steps>
+  <Step title="Navigate to Dashboard">
+    Go to your PingPilot dashboard
+  </Step>
+  
+  <Step title="Click 'New Category'">
+    Click the "Create Category" or "New Category" button
+  </Step>
+  
+  <Step title="Fill in Details">
+    - **Name**: Enter a descriptive name (lowercase, letters/numbers/hyphens only)
+    - **Color**: Pick a color using the color picker
+    - **Emoji**: (Optional) Add an emoji to make it more visual
+  </Step>
+  
+  <Step title="Save Category">
+    Click "Create" to save your new category
+  </Step>
+</Steps>
+
+### Via API (programmatic creation)
+
+Categories are typically created through the dashboard UI, but you can also create them programmatically using the internal tRPC API:
+
+```typescript
+import { trpc } from "@/lib/trpc"
+
+const result = await trpc.category.createEventCategory.mutate({
+  name: "bug",
+  color: "#FF6B6B",
+  emoji: "🐛"
+})
+```
+
+## Validation Rules
+
+### Name Validation
+
+Category names must follow these rules:
+
+<CodeGroup>
+```regex Validation Pattern
+/^[a-zA-Z0-9-]+$/
+```
+
+```typescript Validator
+import { z } from "zod"
+
+const CATEGORY_NAME_VALIDATOR = z
+  .string()
+  .min(1, "Category name is required.")
+  .regex(
+    /^[a-zA-Z0-9-]+$/,
+    "Category name can only contain letters, numbers or hyphens."
+  )
+```
+</CodeGroup>
+
+**Valid names**:
+- `bug`
+- `new-sale`
+- `user-signup`
+- `api-error`
+- `payment123`
+
+**Invalid names**:
+- `New Sale` (contains spaces)
+- `user_signup` (contains underscore)
+- `payment!` (contains special character)
+- `URGENT!!!` (contains special characters)
+
+### Color Validation
+
+Colors must be in hex format:
+
+```typescript
+const COLOR_VALIDATOR = z
+  .string()
+  .min(1, "Color is required")
+  .regex(/^#[0-9A-F]{6}$/i, "Invalid color format.")
+```
+
+**Valid colors**:
+- `#FF6B6B`
+- `#4ECDC4`
+- `#FFE66D`
+- `#000000`
+
+**Invalid colors**:
+- `FF6B6B` (missing #)
+- `#FFF` (too short)
+- `rgb(255, 0, 0)` (wrong format)
+
+### Emoji Validation
+
+If provided, the emoji must be a valid emoji character:
+
+```typescript
+const EMOJI_VALIDATOR = z
+  .string()
+  .emoji("Invalid emoji")
+  .optional()
+```
+
+## Color Storage
+
+Colors are stored as integers in the database for efficiency:
+
+```typescript
+// Hex to Integer conversion
+function parseColor(color: string): number {
+  return parseInt(color.replace('#', ''), 16)
+}
+
+// Example
+parseColor('#FF6B6B') // Returns: 16738667
+parseColor('#FFEB3B') // Returns: 16771899
+```
+
+In the database:
+
+```prisma
+model EventCategory {
+  id    String  @id @default(cuid())
+  name  String
+  color Int     // Stored as integer
+  emoji String?
+  // ...
+}
+```
+
+## Category Uniqueness
+
+Category names must be unique per user:
+
+```prisma
+model EventCategory {
+  // ...
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  @@unique([name, userId])
+}
+```
+
+This means:
+- You cannot have two categories with the same name
+- Different users can have categories with the same name
+- Category names are case-sensitive in the database but stored as lowercase
+
+## Quickstart Categories
+
+PingPilot provides quickstart categories to help you get started:
+
+```typescript
+const quickstartCategories = [
+  { name: "bug", emoji: "🐛", color: 0xff6b6b },
+  { name: "sale", emoji: "💰", color: 0xffeb3b },
+  { name: "question", emoji: "🤔", color: 0x6c5ce7 },
+]
+```
+
+These are automatically created when you complete onboarding or can be added via the dashboard.
+
+## Managing Categories
+
+### Viewing Categories
+
+All your categories are displayed on the dashboard with:
+- Category name and emoji
+- Color indicator
+- Event count for the current month
+- Last ping timestamp
+- Unique field count
+
+### Deleting Categories
+
+<Warning>
+  Deleting a category will not delete the events associated with it, but you won't be able to send new events to that category.
+</Warning>
+
+<Steps>
+  <Step title="Navigate to Dashboard">
+    Go to your PingPilot dashboard
+  </Step>
+  
+  <Step title="Find the Category">
+    Locate the category you want to delete
+  </Step>
+  
+  <Step title="Click Delete">
+    Click the delete button (usually a trash icon)
+  </Step>
+  
+  <Step title="Confirm Deletion">
+    Confirm that you want to delete the category
+  </Step>
+</Steps>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use Descriptive Names">
+    Choose names that clearly describe the event type:
+    - ✅ `payment-failed`
+    - ✅ `new-user-signup`
+    - ❌ `event1`
+    - ❌ `x`
+  </Accordion>
+
+  <Accordion title="Use Consistent Naming">
+    Establish a naming convention and stick to it:
+    - All lowercase
+    - Use hyphens for spaces
+    - Be specific but concise
+  </Accordion>
+
+  <Accordion title="Choose Meaningful Colors">
+    Use colors that match the severity or type of event:
+    - 🔴 Red (`#FF6B6B`) for errors and critical events
+    - 🟡 Yellow (`#FFEB3B`) for warnings
+    - 🟢 Green (`#4CAF50`) for success events
+    - 🔵 Blue (`#2196F3`) for informational events
+  </Accordion>
+
+  <Accordion title="Add Relevant Emojis">
+    Emojis make notifications more scannable:
+    - 🐛 for bugs
+    - 💰 for sales
+    - 👤 for user events
+    - ⚠️ for warnings
+    - ✅ for success events
+  </Accordion>
+
+  <Accordion title="Don't Create Too Many Categories">
+    Keep the number of categories manageable. Instead of creating a category for every specific event, group similar events together and use the `fields` parameter to add specificity.
+  </Accordion>
+</AccordionGroup>
+
+## Example Categories
+
+Here are some common category configurations:
+
+<CodeGroup>
+```json E-commerce
+[
+  {
+    "name": "sale",
+    "color": "#4CAF50",
+    "emoji": "💰"
+  },
+  {
+    "name": "refund",
+    "color": "#FF9800",
+    "emoji": "💸"
+  },
+  {
+    "name": "abandoned-cart",
+    "color": "#FFC107",
+    "emoji": "🛒"
+  },
+  {
+    "name": "inventory-low",
+    "color": "#F44336",
+    "emoji": "📦"
+  }
+]
+```
+
+```json SaaS Application
+[
+  {
+    "name": "signup",
+    "color": "#4CAF50",
+    "emoji": "✨"
+  },
+  {
+    "name": "trial-ending",
+    "color": "#FF9800",
+    "emoji": "⏰"
+  },
+  {
+    "name": "upgrade",
+    "color": "#9C27B0",
+    "emoji": "🚀"
+  },
+  {
+    "name": "bug",
+    "color": "#F44336",
+    "emoji": "🐛"
+  },
+  {
+    "name": "feature-request",
+    "color": "#2196F3",
+    "emoji": "💡"
+  }
+]
+```
+
+```json DevOps Monitoring
+[
+  {
+    "name": "deployment",
+    "color": "#4CAF50",
+    "emoji": "🚀"
+  },
+  {
+    "name": "error",
+    "color": "#F44336",
+    "emoji": "❌"
+  },
+  {
+    "name": "warning",
+    "color": "#FF9800",
+    "emoji": "⚠️"
+  },
+  {
+    "name": "performance",
+    "color": "#2196F3",
+    "emoji": "📊"
+  }
+]
+```
+</CodeGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Sending Events" icon="paper-plane" href="/guides/sending-events">
+    Learn how to send events to your categories
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/endpoints/send-event">
+    View the complete API reference
+  </Card>
+</CardGroup>

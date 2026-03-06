@@ -1,80 +1,217 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: 'Quickstart'
+description: 'Get started with PingPilot in under 5 minutes'
+icon: 'rocket'
 ---
 
-## Get started in three steps
-
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+Get up and running with PingPilot and receive your first event notification in minutes.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  Before you begin, make sure you have an email address ready for account creation.
 </Note>
+
+## Create Your Account
+
+<Steps>
+  <Step title="Sign Up">
+    Navigate to the [PingPilot signup page](https://pingpilot.com/sign-up) and create your account using your email address or social login.
+    
+    After signing up, you'll be redirected to a welcome page while your account is being configured.
+  </Step>
+
+  <Step title="Access Your Dashboard">
+    Once setup is complete, you'll automatically be redirected to your dashboard. This is your central hub for managing event categories and monitoring notifications.
+    
+    Your account starts on the **Free plan** with:
+    - 100 events per month
+    - Up to 3 event categories
+  </Step>
+
+  <Step title="Configure Notification Channels">
+    To receive notifications, you need to connect at least one notification channel. Navigate to **Account Settings** and configure:
+
+    <Tabs>
+      <Tab title="Discord">
+        1. Get your Discord User ID:
+           - Open Discord and enable Developer Mode (User Settings → Advanced → Developer Mode)
+           - Right-click your username and select "Copy User ID"
+        2. Paste your Discord ID in the Account Settings
+        3. Save your settings
+      </Tab>
+      
+      <Tab title="Telegram">
+        1. Start a chat with the PingPilot bot on Telegram
+        2. Send the `/start` command
+        3. Enter your Telegram username (without @) in Account Settings
+        4. Save your settings
+      </Tab>
+      
+      <Tab title="Email">
+        Email notifications are automatically enabled using the email address you signed up with. No additional configuration needed!
+      </Tab>
+    </Tabs>
+
+    <Warning>
+      You must configure at least Discord or Telegram to receive event notifications. Email alone is not sufficient for real-time alerts.
+    </Warning>
+  </Step>
+
+  <Step title="Create Your First Category">
+    Event categories help you organize different types of notifications.
+
+    1. On your dashboard, click the **"Add Category"** button
+    2. Enter a category name (e.g., "user-signup", "sales", "errors")
+    3. Choose a color to visually distinguish this category
+    4. Optionally, select an emoji icon
+    5. Click **"Create Category"**
+
+    <Tip>
+      Use descriptive category names that match your use case. For example: `payment-received`, `new-user`, `system-error`.
+    </Tip>
+  </Step>
+
+  <Step title="Get Your API Key">
+    You'll need an API key to send events to PingPilot.
+
+    1. Navigate to **API Key** in the settings menu
+    2. Copy your unique API key
+    3. Keep this key secure - it's like a password for your account
+
+    <Warning>
+      Never commit your API key to version control or share it publicly. If compromised, regenerate it immediately from the API Key settings.
+    </Warning>
+  </Step>
+
+  <Step title="Send Your First Event">
+    Now you're ready to trigger your first notification! Use this example to send a test event:
+
+    <CodeGroup>
+      ```bash cURL
+      curl -X POST https://pingpilot.com/api/v1/event \
+        -H "Authorization: Bearer YOUR_API_KEY" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "category": "user-signup",
+          "description": "A new user just joined!",
+          "fields": {
+            "username": "johndoe",
+            "email": "john@example.com",
+            "plan": "free"
+          }
+        }'
+      ```
+
+      ```javascript Node.js
+      const response = await fetch('https://pingpilot.com/api/v1/event', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.PINGPILOT_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          category: 'user-signup',
+          description: 'A new user just joined!',
+          fields: {
+            username: 'johndoe',
+            email: 'john@example.com',
+            plan: 'free'
+          }
+        })
+      });
+
+      const data = await response.json();
+      console.log(data);
+      ```
+
+      ```python Python
+      import requests
+      import os
+
+      response = requests.post(
+          'https://pingpilot.com/api/v1/event',
+          headers={
+              'Authorization': f'Bearer {os.getenv("PINGPILOT_API_KEY")}',
+              'Content-Type': 'application/json'
+          },
+          json={
+              'category': 'user-signup',
+              'description': 'A new user just joined!',
+              'fields': {
+                  'username': 'johndoe',
+                  'email': 'john@example.com',
+                  'plan': 'free'
+              }
+          }
+      )
+
+      print(response.json())
+      ```
+    </CodeGroup>
+
+    Replace `YOUR_API_KEY` with the API key you copied earlier, and make sure the `category` matches the one you created.
+  </Step>
+
+  <Step title="Check Your Notifications">
+    Within seconds, you should receive notifications on all configured channels:
+    
+    - **Discord**: A rich embed message in your DMs
+    - **Telegram**: A formatted text message from the PingPilot bot
+    - **Email**: A styled email notification
+
+    The notification will include:
+    - The category name and emoji
+    - Your custom description
+    - All the fields you included (username, email, plan)
+    - A timestamp
+
+    <Tip>
+      Not receiving notifications? Check that your Discord ID or Telegram username is correctly configured in Account Settings.
+    </Tip>
+  </Step>
+</Steps>
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="code" href="/api/introduction">
+    Explore the complete API documentation and advanced features
+  </Card>
+  
+  <Card title="Upgrade Your Plan" icon="arrow-up" href="/pricing/overview">
+    Need more events or categories? Check out Pro and Enterprise plans
+  </Card>
+  
+  <Card title="Event Categories" icon="folder" href="/features/event-categories">
+    Learn how to organize and manage your event categories
+  </Card>
+  
+  <Card title="Notification Channels" icon="bell" href="/features/notifications">
+    Configure additional notification channels and webhooks
+  </Card>
+</CardGroup>
+
+## Common Issues
+
+<AccordionGroup>
+  <Accordion title="I'm getting a 401 Unauthorized error">
+    This means your API key is invalid or missing. Make sure you:
+    - Include the `Authorization` header in your request
+    - Use the format: `Bearer YOUR_API_KEY`
+    - Copy the complete API key from your dashboard without any extra spaces
+  </Accordion>
+
+  <Accordion title="I'm getting a 404 category not found error">
+    The category name in your API request must exactly match a category you've created in your dashboard. Category names are case-sensitive.
+  </Accordion>
+
+  <Accordion title="I'm getting a 403 Forbidden error">
+    This usually means you haven't configured your Discord ID or Telegram username in Account Settings. Both are required to receive notifications.
+  </Accordion>
+
+  <Accordion title="I hit my monthly quota limit">
+    Free accounts are limited to 100 events per month. You can:
+    - Wait until next month when your quota resets
+    - Upgrade to Pro (1,000 events/month) or Enterprise (10,000 events/month)
+    - Check your current usage in the Dashboard
+  </Accordion>
+</AccordionGroup>

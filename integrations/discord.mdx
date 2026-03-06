@@ -1,0 +1,200 @@
+---
+title: 'Discord Integration'
+description: 'Receive event notifications as rich embeds in Discord DMs'
+icon: 'discord'
+---
+
+PingPilot sends event notifications to your Discord account as rich embedded messages with color coding, custom fields, and timestamps.
+
+## How It Works
+
+The Discord integration uses the Discord REST API to:
+
+1. Create a DM channel with your Discord account
+2. Send formatted embeds with your event data
+3. Include color-coded categories and structured fields
+
+<Info>
+  Discord notifications are sent via Direct Messages (DMs) to ensure you receive alerts privately, no matter which server you're on.
+</Info>
+
+## Prerequisites
+
+Before setting up Discord notifications, you need:
+
+- A Discord account
+- Your Discord User ID
+
+## Getting Your Discord User ID
+
+<Steps>
+  <Step title="Enable Developer Mode">
+    Open Discord Settings → Advanced → Enable "Developer Mode"
+  </Step>
+  <Step title="Copy Your User ID">
+    Right-click on your username anywhere in Discord and select "Copy User ID"
+  </Step>
+  <Step title="Add to PingPilot">
+    Go to your PingPilot account settings and paste your Discord User ID
+  </Step>
+</Steps>
+
+<Warning>
+  Make sure you have DMs enabled from server members, or the PingPilot bot won't be able to send you messages.
+</Warning>
+
+## Configuration
+
+### 1. Add Discord ID in Account Settings
+
+Navigate to your PingPilot dashboard:
+
+```bash
+https://pingpilot.yourdomain.com/account/settings
+```
+
+Enter your Discord User ID in the Discord ID field.
+
+### 2. Test the Integration
+
+After configuring your Discord ID, trigger a test event:
+
+```bash
+curl -X POST https://pingpilot.yourdomain.com/api/v1/event \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "category": "user-signup",
+    "description": "Test Discord notification",
+    "fields": {
+      "username": "testuser",
+      "email": "test@example.com"
+    }
+  }'
+```
+
+You should receive a DM from the PingPilot bot with a rich embed.
+
+## Notification Format
+
+Discord notifications are sent as embeds with the following structure:
+
+- **Title**: Category name with emoji (e.g., "🔔 User-signup")
+- **Description**: Event description
+- **Color**: Hex color code from your category settings
+- **Timestamp**: ISO 8601 formatted timestamp
+- **Fields**: Custom fields from your event data (displayed inline)
+
+### Example Discord Embed
+
+<Frame>
+  <img src="/images/discord-notification-example.png" alt="Discord notification example" />
+</Frame>
+
+The embed will show:
+
+```
+🔔 User-Signup
+
+A new user-signup event has occurred!
+
+🔹 username: testuser
+🔹 email: test@example.com
+
+Timestamp: 2026-03-06T10:30:00.000Z
+```
+
+## Technical Implementation
+
+The Discord integration is implemented using the Discord REST API v10:
+
+```typescript
+// Source: src/lib/discord-client.ts
+import { REST } from "@discordjs/rest"
+import { APIEmbed, Routes } from "discord-api-types/v10"
+
+export class DiscordClient {
+  private rest: REST
+  
+  constructor(token: string | undefined) {
+    this.rest = new REST({ version: "10" }).setToken(token ?? "")
+  }
+  
+  async createDM(userId: string) {
+    return this.rest.post(Routes.userChannels(), {
+      body: { recipient_id: userId },
+    })
+  }
+  
+  async sendEmbed(channelId: string, embed: APIEmbed) {
+    return this.rest.post(Routes.channelMessages(channelId), {
+      body: { embeds: [embed] },
+    })
+  }
+}
+```
+
+See the implementation in `src/lib/discord-client.ts:1`.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Not receiving Discord notifications">
+    **Check the following:**
+    
+    1. Verify your Discord User ID is correct (20 characters max)
+    2. Ensure you have DMs enabled from server members
+    3. Check if you've blocked the PingPilot bot
+    4. Verify your Discord privacy settings allow DMs
+  </Accordion>
+  
+  <Accordion title="API returns 403 error">
+    If you get:
+    
+    ```json
+    {
+      "message": "Please enter your discord ID in your account settings"
+    }
+    ```
+    
+    Your Discord ID is not configured. Add it in your account settings.
+  </Accordion>
+  
+  <Accordion title="Bot can't send DM">
+    If the Discord API fails to create a DM:
+    
+    1. Check your privacy settings in Discord
+    2. Make sure you're not blocking DMs from server members
+    3. Verify the User ID is correct
+  </Accordion>
+</AccordionGroup>
+
+## API Requirements
+
+<Warning>
+  The Discord User ID field is **required**. The API will return a 403 error if it's not configured when you try to send an event.
+</Warning>
+
+From the API handler (`src/app/api/v1/event/route.ts:52`):
+
+```typescript
+if (!user.discordId) {
+  return NextResponse.json(
+    {
+      message: "Please enter your discord ID in your account settings",
+    },
+    { status: 403 }
+  )
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Telegram Integration" icon="telegram" href="/integrations/telegram">
+    Set up Telegram notifications
+  </Card>
+  <Card title="Email Integration" icon="envelope" href="/integrations/email">
+    Configure email notifications
+  </Card>
+</CardGroup>

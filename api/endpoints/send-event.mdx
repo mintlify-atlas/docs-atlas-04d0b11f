@@ -1,0 +1,325 @@
+---
+title: 'POST /api/v1/event'
+description: 'Send an event notification to Discord, Telegram, and Email'
+---
+
+## Endpoint
+
+```
+POST https://pingpilot.app/api/v1/event
+```
+
+## Overview
+
+Sends a real-time event notification to all configured channels (Discord, Telegram, Email). The event is formatted according to the category settings and delivered immediately.
+
+## Authentication
+
+Requires Bearer token authentication:
+
+```bash
+Authorization: Bearer YOUR_API_KEY
+```
+
+## Request Body
+
+<ParamField body="category" type="string" required>
+  The name of the event category. Must match an existing category in your account.
+  
+  **Validation:**
+  - Required field
+  - Must contain only letters, numbers, or hyphens
+  - Must be created in your dashboard before use
+  
+  **Example:** `"bug"`, `"sale"`, `"user-signup"`
+</ParamField>
+
+<ParamField body="description" type="string" optional>
+  A description of the event. This appears in the notification message.
+  
+  **Default:** `"A new {category} event has occurred!"`
+  
+  **Example:** `"Payment processing failed for user 12345"`
+</ParamField>
+
+<ParamField body="fields" type="object" optional>
+  Additional structured data to include with the event. Each field becomes a separate line in the notification.
+  
+  **Constraints:**
+  - Keys must be strings
+  - Values must be `string`, `number`, or `boolean`
+  - All fields are displayed inline in Discord embeds
+  
+  **Example:**
+  ```json
+  {
+    "user_id": "12345",
+    "amount": 99.99,
+    "priority": "high",
+    "retry_attempted": false
+  }
+  ```
+</ParamField>
+
+## Request Example
+
+```bash
+curl -X POST https://pingpilot.app/api/v1/event \
+  -H "Authorization: Bearer pk_1234567890abcdef" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "category": "bug",
+    "description": "Critical database connection error",
+    "fields": {
+      "severity": "high",
+      "service": "api-server",
+      "error_code": "ECONNREFUSED",
+      "retry_count": 3
+    }
+  }'
+```
+
+## Response
+
+<ResponseField name="message" type="string">
+  Success message confirming the event was processed.
+</ResponseField>
+
+<ResponseField name="eventId" type="string">
+  Unique identifier for the created event. Use this to track delivery status in your dashboard.
+</ResponseField>
+
+### Success Response
+
+**Status Code:** `200 OK`
+
+```json
+{
+  "message": "Event processed successfully",
+  "eventId": "evt_clx1234567890"
+}
+```
+
+## Error Responses
+
+See [Error Responses](/api/errors) for detailed error documentation.
+
+### Common Errors
+
+<Expandable title="401 Unauthorized - Missing or invalid API key">
+  ```json
+  {
+    "message": "Unauthorized"
+  }
+  ```
+  
+  **Solution:** Include valid Bearer token in Authorization header.
+</Expandable>
+
+<Expandable title="404 Not Found - Category doesn't exist">
+  ```json
+  {
+    "message": "You dont have a category named \"bug\""
+  }
+  ```
+  
+  **Solution:** Create the category in your dashboard first.
+</Expandable>
+
+<Expandable title="422 Unprocessable Entity - Validation failed">
+  ```json
+  {
+    "message": "[{\"code\":\"invalid_type\",\"expected\":\"string\",\"received\":\"undefined\",\"path\":[\"category\"],\"message\":\"Required\"}]"
+  }
+  ```
+  
+  **Common causes:**
+  - Missing required `category` field
+  - Category name contains spaces or special characters (use hyphens instead)
+  - Invalid field value types (must be string, number, or boolean)
+</Expandable>
+
+<Expandable title="429 Too Many Requests - Quota exceeded">
+  ```json
+  {
+    "message": "Monthly quota reached. Please upgrade your plan for more events"
+  }
+  ```
+  
+  **Solution:** Upgrade your plan or wait for quota reset.
+</Expandable>
+
+<Expandable title="500 Internal Server Error - Delivery failed">
+  ```json
+  {
+    "message": "Error processing event",
+    "eventId": "evt_clx1234567890"
+  }
+  ```
+  
+  **Note:** Event is created but delivery failed. Check the event status in your dashboard.
+</Expandable>
+
+## Event Processing Flow
+
+When you send an event, PingPilot:
+
+1. **Authenticates** your API key
+2. **Validates** account configuration (Discord ID, Telegram username)
+3. **Checks quota** against your plan limits
+4. **Validates** request body against Zod schema
+5. **Finds category** in your account
+6. **Creates event** record in database
+7. **Sends to Discord** as an embed message
+8. **Sends to Telegram** as a formatted text message
+9. **Sends to Email** as an HTML email
+10. **Updates delivery status** to `"DELIVERED"` or `"FAILED"`
+11. **Increments quota** counter
+
+## Event Formatting
+
+### Discord
+
+Events appear as rich embed messages:
+
+- **Title:** `{emoji} {Category}` (e.g., "🐛 Bug")
+- **Description:** Your custom description or default
+- **Color:** Category's configured color
+- **Timestamp:** Event creation time
+- **Fields:** Each field from `fields` object as inline field
+
+### Telegram
+
+Events appear as formatted text:
+
+```
+🎉 Event Notification 🎉
+
+📌 Category: 🐛 Bug
+📝 Description: Critical database connection error
+🎨 Color Code: 16711680
+🕒 Timestamp: 2026-03-06T10:30:00.000Z
+
+📌 Details:
+🔹 severity: high
+🔹 service: api-server
+🔹 error_code: ECONNREFUSED
+🔹 retry_count: 3
+```
+
+### Email
+
+Events appear as HTML emails with:
+
+- Subject: "PingPilot Alert"
+- Formatted with category color
+- All fields displayed in structured format
+
+## Code Examples
+
+### JavaScript/Node.js
+
+```javascript
+const sendEvent = async (category, description, fields = {}) => {
+  const response = await fetch('https://pingpilot.app/api/v1/event', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.PINGPILOT_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ category, description, fields })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`PingPilot error: ${error.message}`);
+  }
+
+  return await response.json();
+};
+
+// Usage
+await sendEvent('bug', 'Database connection failed', {
+  severity: 'high',
+  service: 'api-server'
+});
+```
+
+### Python
+
+```python
+import os
+import requests
+
+def send_event(category, description=None, fields=None):
+    response = requests.post(
+        'https://pingpilot.app/api/v1/event',
+        headers={
+            'Authorization': f'Bearer {os.environ["PINGPILOT_API_KEY"]}',
+            'Content-Type': 'application/json'
+        },
+        json={
+            'category': category,
+            'description': description,
+            'fields': fields or {}
+        }
+    )
+    response.raise_for_status()
+    return response.json()
+
+# Usage
+send_event('bug', 'Database connection failed', {
+    'severity': 'high',
+    'service': 'api-server'
+})
+```
+
+### Go
+
+```go
+package main
+
+import (
+    "bytes"
+    "encoding/json"
+    "net/http"
+    "os"
+)
+
+type EventRequest struct {
+    Category    string                 `json:"category"`
+    Description string                 `json:"description,omitempty"`
+    Fields      map[string]interface{} `json:"fields,omitempty"`
+}
+
+func sendEvent(category, description string, fields map[string]interface{}) error {
+    reqBody, _ := json.Marshal(EventRequest{
+        Category:    category,
+        Description: description,
+        Fields:      fields,
+    })
+
+    req, _ := http.NewRequest("POST", "https://pingpilot.app/api/v1/event", bytes.NewBuffer(reqBody))
+    req.Header.Set("Authorization", "Bearer "+os.Getenv("PINGPILOT_API_KEY"))
+    req.Header.Set("Content-Type", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        return err
+    }
+    defer resp.Body.Close()
+
+    return nil
+}
+```
+
+## Best Practices
+
+- **Create categories first** in your dashboard before sending events
+- **Use meaningful field names** (e.g., `user_id` instead of `uid`)
+- **Keep descriptions concise** but informative
+- **Limit fields to essential data** to keep notifications readable
+- **Handle errors gracefully** and implement retry logic
+- **Monitor quota usage** to avoid 429 errors
+- **Store eventId** for tracking and debugging

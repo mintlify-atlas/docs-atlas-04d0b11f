@@ -1,0 +1,240 @@
+---
+title: 'Error Responses'
+description: 'Understand error codes and how to handle them'
+---
+
+## Error Response Format
+
+All PingPilot API errors return a JSON object with a `message` field describing the error:
+
+```json
+{
+  "message": "Error description"
+}
+```
+
+Some error responses may include additional fields like `eventId` for tracking purposes.
+
+## HTTP Status Codes
+
+The PingPilot API uses standard HTTP status codes to indicate request success or failure:
+
+| Status Code | Meaning |
+|-------------|----------|
+| `200` | Success - Request completed successfully |
+| `400` | Bad Request - Invalid JSON or malformed request |
+| `401` | Unauthorized - Missing or invalid API key |
+| `403` | Forbidden - Account configuration incomplete |
+| `404` | Not Found - Category doesn't exist |
+| `422` | Unprocessable Entity - Validation failed |
+| `429` | Too Many Requests - Quota exceeded |
+| `500` | Internal Server Error - Server-side error |
+
+## Error Responses by Status Code
+
+### 400 Bad Request
+
+#### Invalid JSON Body
+
+Returned when the request body is not valid JSON:
+
+```json
+{
+  "message": "Invalid JSON request body"
+}
+```
+
+**Solution**: Ensure your request body is valid JSON format.
+
+---
+
+### 401 Unauthorized
+
+#### Missing Authorization Header
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+**Solution**: Include the `Authorization: Bearer YOUR_API_KEY` header.
+
+#### Invalid Header Format
+
+```json
+{
+  "message": "Invalid auth header format. Expected: 'Bearer [API_KEY]'"
+}
+```
+
+**Solution**: Ensure the header follows the format `Bearer YOUR_API_KEY`.
+
+#### Invalid API Key
+
+```json
+{
+  "message": "Invalid API key"
+}
+```
+
+**Solution**: Verify your API key is correct and active.
+
+---
+
+### 403 Forbidden
+
+#### Discord ID Not Set
+
+```json
+{
+  "message": "Please enter your discord ID in your account settings"
+}
+```
+
+**Solution**: Add your Discord ID in account settings.
+
+#### Telegram Username Not Set
+
+```json
+{
+  "message": "Telegram username not set. Please set your telegram username in your account settings to receive notifications"
+}
+```
+
+**Solution**: Add your Telegram username in account settings.
+
+---
+
+### 404 Not Found
+
+#### Category Not Found
+
+```json
+{
+  "message": "You dont have a category named \"category-name\""
+}
+```
+
+**Solution**: Create the category first or check the category name spelling.
+
+---
+
+### 422 Unprocessable Entity
+
+#### Validation Error
+
+Returned when request parameters fail Zod validation:
+
+```json
+{
+  "message": "[{\"code\":\"invalid_type\",\"expected\":\"string\",\"received\":\"undefined\",\"path\":[\"category\"],\"message\":\"Required\"}]"
+}
+```
+
+**Common validation failures:**
+
+- Missing required `category` field
+- Category name contains invalid characters (only letters, numbers, hyphens allowed)
+- `fields` values are not string, number, or boolean
+- Invalid data types
+
+**Solution**: Check parameter types and required fields match the API specification.
+
+---
+
+### 429 Too Many Requests
+
+#### Monthly Quota Exceeded
+
+```json
+{
+  "message": "Monthly quota reached. Please upgrade your plan for more events"
+}
+```
+
+**Solution**: Upgrade your plan or wait until the quota resets at the start of next month.
+
+See [Rate Limits](/api/rate-limits) for quota details by plan.
+
+---
+
+### 500 Internal Server Error
+
+#### Event Processing Failed
+
+Returned when event creation succeeds but delivery fails:
+
+```json
+{
+  "message": "Error processing event",
+  "eventId": "evt_1234567890"
+}
+```
+
+**Note**: The event is still created and saved with `deliveryStatus: "FAILED"`. You can view failed events in your dashboard.
+
+#### Generic Server Error
+
+```json
+{
+  "message": "Internal server error"
+}
+```
+
+**Solution**: Retry the request. If the error persists, contact support.
+
+---
+
+## Handling Errors
+
+### Example Error Handling (JavaScript)
+
+```javascript
+try {
+  const response = await fetch('https://pingpilot.app/api/v1/event', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      category: 'bug',
+      description: 'Error occurred'
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    
+    switch (response.status) {
+      case 401:
+        console.error('Authentication failed:', error.message);
+        break;
+      case 404:
+        console.error('Category not found:', error.message);
+        break;
+      case 429:
+        console.error('Quota exceeded:', error.message);
+        break;
+      default:
+        console.error('API error:', error.message);
+    }
+    
+    return;
+  }
+
+  const data = await response.json();
+  console.log('Event sent:', data.eventId);
+} catch (err) {
+  console.error('Request failed:', err);
+}
+```
+
+## Best Practices
+
+- **Implement retry logic** for 500 errors with exponential backoff
+- **Validate input** on the client side before sending requests
+- **Monitor quota usage** to avoid 429 errors
+- **Handle 404 errors** by creating missing categories automatically
+- **Log eventId** from error responses for debugging

@@ -1,0 +1,301 @@
+---
+title: "Event Categories"
+description: "Organize and manage your event types"
+---
+
+## Overview
+
+Event categories help you organize different types of events in your application. Each category has a unique name, color, and optional emoji, making it easy to identify and filter events in your dashboard.
+
+## Category Structure
+
+Every event category consists of:
+
+<ParamField path="name" type="string" required>
+  Unique identifier for the category (lowercase). Must be unique per user.
+</ParamField>
+
+<ParamField path="color" type="integer" required>
+  Hex color code stored as integer. Displayed in notifications and dashboard.
+</ParamField>
+
+<ParamField path="emoji" type="string" optional>
+  Single emoji character to represent the category visually.
+</ParamField>
+
+<ParamField path="userId" type="string" required>
+  Links category to your account. Categories are user-specific.
+</ParamField>
+
+## Creating Categories
+
+You can create event categories through the dashboard or programmatically.
+
+### Via Dashboard
+
+1. Navigate to your dashboard
+2. Click "Create Category"
+3. Enter category details:
+   - **Name**: Lowercase, alphanumeric with hyphens
+   - **Color**: Hex format `#RRGGBB`
+   - **Emoji**: Optional single emoji
+4. Click "Create"
+
+### Validation Rules
+
+Category names must pass validation:
+
+- Lowercase letters, numbers, hyphens only
+- No spaces or special characters
+- Must be unique for your account
+
+Colors must be valid hex codes:
+
+- Format: `#RRGGBB` (case-insensitive)
+- Example: `#ff6b6b`, `#6c5ce7`, `#ffeb3b`
+- Regex: `/^#[0-9A-F]{6}$/i`
+
+<Warning>
+Colors are stored as integers internally. The hex code `#ff6b6b` is parsed to `16738155` (decimal) before storage.
+</Warning>
+
+### Quick Start Categories
+
+PingPilot includes three pre-configured categories for quick setup:
+
+```typescript
+[
+  { name: "bug", emoji: "🐛", color: 0xff6b6b },
+  { name: "sale", emoji: "💰", color: 0xffeb3b },
+  { name: "question", emoji: "🤔", color: 0x6c5ce7 }
+]
+```
+
+These can be created automatically when setting up your account.
+
+## Using Categories
+
+Once created, reference categories by name when sending events:
+
+```bash
+curl -X POST https://your-domain.com/api/v1/event \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "category": "bug",
+    "description": "Database connection timeout",
+    "fields": {
+      "service": "api-server",
+      "error_code": "ETIMEDOUT"
+    }
+  }'
+```
+
+<Info>
+The category name in your API request must exactly match an existing category. The API will return a 404 error if the category doesn't exist.
+</Info>
+
+## Category Dashboard
+
+The main dashboard displays all your categories with real-time statistics:
+
+### Category Cards
+
+Each category card shows:
+
+- **Color Badge**: Circle with category color
+- **Name & Emoji**: Category identifier
+- **Created Date**: When category was created
+- **Last Ping**: Time since last event (e.g., "2 minutes ago")
+- **Unique Fields**: Number of distinct field names used this month
+- **Events This Month**: Total events received in current calendar month
+
+### Statistics Calculation
+
+Statistics are calculated for the current month:
+
+```typescript
+const firstDayOfMonth = startOfMonth(now)
+
+// Count events since month start
+await db.event.count({
+  where: {
+    EventCategory: { id: category.id },
+    createdAt: { gte: firstDayOfMonth }
+  }
+})
+```
+
+This means stats reset automatically on the 1st of each month.
+
+### Unique Fields Tracking
+
+PingPilot tracks how many different field names you've used:
+
+```typescript
+// Get all events this month
+const events = await db.event.findMany({
+  where: { EventCategory: { id: category.id }, createdAt: { gte: firstDayOfMonth } },
+  select: { fields: true },
+  distinct: ["fields"]
+})
+
+// Extract unique field names
+const fieldNames = new Set<string>()
+events.forEach((event) => {
+  Object.keys(event.fields).forEach((fieldName) => {
+    fieldNames.add(fieldName)
+  })
+})
+
+return fieldNames.size
+```
+
+This helps you understand the variety of data being tracked.
+
+## Managing Categories
+
+### Viewing Categories
+
+Categories are listed in the dashboard, sorted by most recently updated:
+
+```typescript
+await db.eventCategory.findMany({
+  where: { userId: ctx.user.id },
+  orderBy: { updatedAt: "desc" }
+})
+```
+
+### Deleting Categories
+
+<Warning>
+Deleting a category is permanent and cannot be undone. Associated events will lose their category reference.
+</Warning>
+
+To delete a category:
+
+1. Click the delete icon (trash can) on the category card
+2. Confirm deletion in the modal dialog
+3. Category and its association with events are removed
+
+The deletion uses a composite key for safety:
+
+```typescript
+await db.eventCategory.delete({
+  where: {
+    name_userId: { name: "category-name", userId: user.id }
+  }
+})
+```
+
+### Updating Categories
+
+Category updates are reflected in the `updatedAt` timestamp. Changes include:
+
+- Modifying color or emoji
+- Any field updates
+
+Category names cannot be changed after creation due to unique constraints.
+
+## Category Analytics
+
+Click "View all" on any category card to see detailed analytics:
+
+### Time-Based Filtering
+
+View events by time range:
+- **Today**: Events from start of current day
+- **This Week**: Events from start of current week (Sunday)
+- **This Month**: Events from start of current month
+
+```typescript
+switch (timeRange) {
+  case "today":
+    startDate = startOfDay(now)
+    break
+  case "week":
+    startDate = startOfWeek(now, { weekStartsOn: 0 })
+    break
+  case "month":
+    startDate = startOfMonth(now)
+    break
+}
+```
+
+### Event List
+
+Paginated table showing:
+- Category name
+- Creation date/time
+- All custom fields as columns
+- Delivery status (color-coded badge)
+
+Pagination supports:
+- Configurable page size (max 50 per page)
+- Page number in URL query params
+- Previous/Next navigation
+
+### Numeric Field Summations
+
+For fields with numeric values, PingPilot automatically calculates totals:
+
+- **Today**: Sum of numeric fields from today
+- **This Week**: Sum from start of week
+- **This Month**: Sum from start of month
+
+These appear as summary cards above the event table.
+
+<Tip>
+Use numeric fields for metrics you want to track over time: revenue, user count, error count, response times, etc.
+</Tip>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use Semantic Names">
+    Choose names that clearly describe the event type: `user-signup`, `payment-failed`, `api-error`.
+  </Accordion>
+
+  <Accordion title="Color Code by Severity">
+    Use consistent colors for severity levels:
+    - Red for errors/failures
+    - Yellow for warnings
+    - Green for success
+    - Blue for informational
+  </Accordion>
+
+  <Accordion title="Add Meaningful Emojis">
+    Emojis make categories instantly recognizable in notifications:
+    - 🐛 for bugs
+    - 💰 for sales
+    - 🚨 for critical alerts
+    - ✅ for successful operations
+  </Accordion>
+
+  <Accordion title="Keep Categories Focused">
+    Create specific categories rather than generic ones. "payment-failed" is better than "error".
+  </Accordion>
+
+  <Accordion title="Monitor Category Statistics">
+    Regularly review event counts and unique fields to understand usage patterns.
+  </Accordion>
+</AccordionGroup>
+
+## Limitations
+
+- Category names must be unique per user
+- Names cannot be changed after creation
+- Categories cannot be merged or split
+- Deleting a category doesn't delete associated events
+- Maximum 50 events per page in analytics view
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Event Monitoring" icon="bell" href="/features/event-monitoring">
+    Start sending events to your categories
+  </Card>
+  <Card title="Analytics Dashboard" icon="chart-line" href="/features/analytics-dashboard">
+    Explore detailed event analytics
+  </Card>
+</CardGroup>

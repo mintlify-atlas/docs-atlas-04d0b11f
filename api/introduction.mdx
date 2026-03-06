@@ -1,0 +1,58 @@
+---
+title: 'API Overview'
+description: 'Get started with the PingPilot API to send real-time event notifications'
+---
+
+## Welcome to PingPilot API
+
+The PingPilot API allows you to send real-time event notifications directly to Discord, Telegram, and Email from your applications. Built for developers who need instant alerts for critical events like errors, sales, user actions, and more.
+
+## Base URL
+
+All API requests should be made to:
+
+```
+https://pingpilot.app/api/v1
+```
+
+## Quick Start
+
+1. **Get your API key** from your PingPilot dashboard
+2. **Create event categories** to organize your notifications
+3. **Send events** using the POST `/api/v1/event` endpoint
+
+### Example Request
+
+```bash
+curl -X POST https://pingpilot.app/api/v1/event \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "category": "bug",
+    "description": "Critical error in payment processing",
+    "fields": {
+      "severity": "high",
+      "user_id": "12345"
+    }
+  }'
+```
+
+## Key Features
+
+- **Multi-channel delivery**: Events sent to Discord, Telegram, and Email simultaneously
+- **Custom fields**: Attach arbitrary key-value pairs to your events
+- **Category-based**: Organize events with custom categories, colors, and emojis
+- **Quota management**: Plan-based monthly event limits
+- **Delivery tracking**: Monitor event delivery status
+
+## Authentication
+
+All API requests require authentication using a Bearer token. See [Authentication](/api/authentication) for details.
+
+## Rate Limits
+
+PingPilot enforces monthly quota limits based on your subscription plan. See [Rate Limits](/api/rate-limits) for details.
+
+## Support
+
+Need help? Contact us at support@pingpilot.app or join our Discord community.

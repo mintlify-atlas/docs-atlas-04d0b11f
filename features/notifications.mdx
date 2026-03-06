@@ -1,0 +1,241 @@
+---
+title: "Notifications"
+description: "Multi-channel notification delivery system"
+---
+
+## Overview
+
+PingPilot delivers event notifications across multiple channels simultaneously, ensuring you never miss critical updates. Each event triggers notifications to Discord, Telegram, and Email with consistent formatting and styling.
+
+## Supported Channels
+
+### Discord Notifications
+
+Events are delivered as rich embedded messages to your Discord account via direct message.
+
+**Features:**
+- Color-coded embeds matching your category color
+- Emoji and category name in title
+- Description text
+- Custom fields displayed inline
+- ISO timestamp
+
+**Setup Requirements:**
+1. Add your Discord ID in account settings
+2. Ensure PingPilot bot can send you DMs
+3. Bot creates a DM channel automatically on first event
+
+<Info>
+The Discord bot uses Discord's embed API to create visually appealing notifications with your category's custom color.
+</Info>
+
+### Telegram Notifications
+
+Text-based notifications sent directly to your Telegram account.
+
+**Message Format:**
+```
+🎉 Event Notification 🎉
+
+📌 Category: 💰 Sale
+📝 Description: New purchase completed
+🎨 Color Code: #ffeb3b
+🕒 Timestamp: 2026-03-06T10:30:00.000Z
+
+📌 Details:
+🔹 amount: 99.99
+🔹 customer: john@example.com
+🔹 product: Premium Plan
+```
+
+**Setup Requirements:**
+1. Set your Telegram username in account settings
+2. Start a conversation with the PingPilot bot
+3. Notifications begin arriving immediately
+
+<Warning>
+You must set your Telegram username before sending events, or the API will return a 403 error.
+</Warning>
+
+### Email Notifications
+
+HTML-formatted emails sent to your registered email address.
+
+**Email Structure:**
+- Subject: "PingPilot Alert"
+- Color-coded header matching category
+- Event title and description
+- Timestamp in readable format
+- Formatted table of custom fields
+
+**Features:**
+- Responsive HTML template
+- Mobile-friendly design
+- Category color theming
+- Structured field presentation
+
+<Tip>
+Email is automatically configured using your account email. No additional setup required.
+</Tip>
+
+### WhatsApp Notifications
+
+WhatsApp integration is planned for future release. The database schema includes a `whatsappNumber` field for users, but delivery is not yet implemented.
+
+<Note>
+WhatsApp support coming soon. You can add your number in account settings to prepare for launch.
+</Note>
+
+## Delivery Process
+
+When you send an event to PingPilot, the notification delivery follows this workflow:
+
+### 1. Event Creation
+
+The event is immediately saved to the database with:
+- Category name and ID
+- Formatted message string
+- Custom fields as JSON
+- Initial status: `PENDING`
+- User ID association
+
+### 2. Parallel Delivery
+
+Notifications are sent to all channels simultaneously:
+
+```typescript
+// All three channels are attempted
+await discord.sendEmbed(dmChannel.id, eventData)
+await sendTextMessage(user.telegramUsername, message)
+await sendEmail(user.email, "PingPilot Alert", emailTemplate)
+```
+
+This parallel approach ensures maximum speed and reliability.
+
+### 3. Status Update
+
+After delivery attempts:
+
+- **Success**: Event marked as `DELIVERED`
+- **Failure**: Event marked as `FAILED` and error logged
+
+The delivery status is tracked at the event level, not per-channel. If any channel fails, the entire event is marked as failed.
+
+### 4. Quota Increment
+
+On successful delivery, your monthly quota counter increments by 1. Failed deliveries do not count toward your quota.
+
+## Delivery Status
+
+Each event has one of three delivery statuses:
+
+<CardGroup cols={3}>
+  <Card title="PENDING" icon="clock">
+    Event created but delivery not yet attempted
+  </Card>
+  <Card title="DELIVERED" icon="check">
+    Successfully sent to all configured channels
+  </Card>
+  <Card title="FAILED" icon="xmark">
+    Delivery failed on one or more channels
+  </Card>
+</CardGroup>
+
+You can view delivery status for all events in the analytics dashboard, with color-coded badges:
+
+- Green: `DELIVERED`
+- Red: `FAILED`
+- Yellow: `PENDING`
+
+## Error Handling
+
+When notification delivery fails:
+
+1. The event is saved with status `FAILED`
+2. Error is logged to server console
+3. API returns 500 status with the event ID:
+
+```json
+{
+  "message": "Error processing event",
+  "eventId": "clx123abc456"
+}
+```
+
+<Warning>
+Failed events are still created in your dashboard. You can view them and manually check what went wrong.
+</Warning>
+
+## Common Failure Scenarios
+
+### Discord Failures
+- Bot cannot DM user (privacy settings)
+- Invalid Discord ID
+- Bot token expired
+- Rate limiting
+
+### Telegram Failures
+- Username not found
+- User hasn't started bot conversation
+- Telegram API unavailable
+- Invalid message format
+
+### Email Failures
+- Invalid email address
+- Email service unavailable
+- Rate limiting
+- Message rejected by recipient server
+
+## Notification Customization
+
+You can customize how your notifications appear by:
+
+### Category Configuration
+- Choose custom colors (hex format)
+- Add emojis to category names
+- Write descriptive category names
+
+### Event Fields
+- Include relevant context in `fields` object
+- Use descriptive field names
+- Provide meaningful values
+
+### Description Text
+- Write clear, actionable descriptions
+- Include urgency indicators when needed
+- Keep descriptions concise but informative
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use Descriptive Categories">
+    Create categories that clearly indicate event type (e.g., "payment-failed" instead of "error").
+  </Accordion>
+
+  <Accordion title="Include Relevant Fields">
+    Add fields that help you take action: user IDs, error codes, amounts, timestamps, etc.
+  </Accordion>
+
+  <Accordion title="Test Your Setup">
+    Send a test event to each category to verify all channels are working correctly.
+  </Accordion>
+
+  <Accordion title="Monitor Delivery Status">
+    Regularly check your dashboard for failed deliveries and investigate root causes.
+  </Accordion>
+
+  <Accordion title="Keep Account Settings Updated">
+    Ensure Discord ID and Telegram username are always current to avoid delivery failures.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Event Monitoring" icon="bell" href="/features/event-monitoring">
+    Learn how to send events and track delivery
+  </Card>
+  <Card title="Analytics Dashboard" icon="chart-line" href="/features/analytics-dashboard">
+    View notification history and delivery metrics
+  </Card>
+</CardGroup>

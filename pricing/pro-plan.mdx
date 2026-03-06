@@ -1,0 +1,155 @@
+---
+title: "Pro Plan"
+description: "Scale your event monitoring with increased quotas and priority support"
+---
+
+## Pro Plan Overview
+
+The Pro plan is designed for growing projects, production applications, and teams that need more capacity and faster support.
+
+## Plan Limits
+
+<CardGroup cols={2}>
+  <Card title="Events per Month" icon="calendar">
+    **1,000 events**
+    
+    10x more events than the Free plan - perfect for production apps
+  </Card>
+  
+  <Card title="Event Categories" icon="folder">
+    **10 categories**
+    
+    Organize complex projects with more granular event categorization
+  </Card>
+</CardGroup>
+
+## Everything in Free, Plus:
+
+### Increased Capacity
+- **1,000 events per month**: 10x more than the Free plan
+- **10 event categories**: Better organization for complex projects
+- Same monthly reset schedule (1st of each month)
+
+### Priority Support
+- Faster response times
+- Direct access to the support team
+- Help with integration and troubleshooting
+
+### Production-Ready
+- Suitable for production applications
+- Higher reliability guarantees
+- Better for customer-facing features
+
+## All Core Features Included
+
+The Pro plan includes everything from the Free plan:
+
+<CardGroup cols={2}>
+  <Card title="Multi-Channel Delivery" icon="bell">
+    Discord, Telegram, and email notifications for every event
+  </Card>
+  
+  <Card title="Custom Categories" icon="palette">
+    Organize events with custom colors, emojis, and names
+  </Card>
+  
+  <Card title="Full API Access" icon="code">
+    Complete REST API with secure authentication
+  </Card>
+  
+  <Card title="Real-Time Dashboard" icon="chart-line">
+    Monitor events, delivery status, and quota usage
+  </Card>
+</CardGroup>
+
+## Quota Management
+
+Your Pro plan quota works the same way as the Free plan, but with higher limits:
+
+- Monitor usage in real-time on your dashboard
+- Monthly quota resets on the 1st of each month
+- API returns `429` status when limit is reached
+
+The quota check is enforced in [route.ts:84-99](/home/daytona/workspace/source/src/app/api/v1/event/route.ts):
+
+```typescript
+const quotaLimit =
+  user.plan === "FREE"
+    ? FREE_QUOTA.maxEventsPerMonth
+    : user.plan === "PRO"
+    ? PRO_QUOTA.maxEventsPerMonth
+    : ENTERPRISE_QUOTA.maxEventsPerMonth
+
+if (quota && quota.count >= quotaLimit) {
+  return NextResponse.json(
+    {
+      message:
+        "Monthly quota reached. Please upgrade your plan for more events",
+    },
+    { status: 429 }
+  )
+}
+```
+
+## Use Cases
+
+The Pro plan is ideal for:
+
+<CardGroup cols={2}>
+  <Card title="Production Apps" icon="rocket">
+    Applications serving real users that need reliable event monitoring
+  </Card>
+  
+  <Card title="SaaS Products" icon="cloud">
+    Software-as-a-Service products that integrate PingPilot for notifications
+  </Card>
+  
+  <Card title="Team Projects" icon="users">
+    Collaborative projects with multiple developers and event sources
+  </Card>
+  
+  <Card title="Active Monitoring" icon="eye">
+    Applications with frequent events that exceed Free plan limits
+  </Card>
+</CardGroup>
+
+## Pricing
+
+The Pro plan is a one-time payment processed securely through Stripe. Visit your dashboard to see current pricing and checkout.
+
+## Upgrading to Pro
+
+<Steps>
+  <Step title="Go to your dashboard">
+    Navigate to the pricing section in your dashboard
+  </Step>
+  
+  <Step title="Select Pro plan">
+    Click on the Pro plan upgrade button
+  </Step>
+  
+  <Step title="Complete checkout">
+    Enter payment details via Stripe's secure checkout
+  </Step>
+  
+  <Step title="Start using increased limits">
+    Your new quotas take effect immediately after payment
+  </Step>
+</Steps>
+
+<Info>
+  The upgrade process is handled by the payment router at [payment-router.ts:7-24](/home/daytona/workspace/source/src/server/routers/payment-router.ts)
+</Info>
+
+## When to Upgrade to Enterprise
+
+Consider upgrading to [Enterprise](/pricing/enterprise-plan) if you:
+
+- Need more than 1,000 events per month
+- Want to create more than 10 event categories
+- Require custom integrations or features
+- Need dedicated support and SLAs
+
+<Card title="Need more capacity?" icon="building" href="/pricing/enterprise-plan">
+  View Enterprise plan features
+</Card>

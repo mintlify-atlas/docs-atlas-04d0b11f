@@ -1,0 +1,220 @@
+---
+title: 'Managing API Keys'
+description: 'Learn how to find, use, and regenerate your PingPilot API key'
+icon: 'key'
+---
+
+## Overview
+
+Your API key is a unique identifier that authenticates your requests to the PingPilot API. Every user automatically receives a unique API key upon registration, which is used to send events to your notification channels.
+
+<Warning>
+  Keep your API key secure! Anyone with your API key can send events to your notification channels and consume your quota.
+</Warning>
+
+## Finding Your API Key
+
+You can find your API key in the dashboard:
+
+<Steps>
+  <Step title="Navigate to API Key Settings">
+    Go to **Dashboard** > **API Key** in the sidebar
+  </Step>
+  
+  <Step title="View Your Key">
+    Your API key will be displayed on the page. Click the copy button to copy it to your clipboard.
+  </Step>
+</Steps>
+
+## Using Your API Key
+
+Your API key is used to authenticate requests to the PingPilot event API. Include it in the `Authorization` header as a Bearer token:
+
+```bash
+curl -X POST https://pingpilot.com/api/v1/event \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "category": "bug",
+    "description": "Critical error in payment processor",
+    "fields": {
+      "severity": "high",
+      "user_id": "12345"
+    }
+  }'
+```
+
+### Authentication Format
+
+The API expects the `Authorization` header in this exact format:
+
+```
+Authorization: Bearer [YOUR_API_KEY]
+```
+
+<Note>
+  The word "Bearer" must be followed by a space, then your API key. Incorrect formatting will result in a 401 Unauthorized error.
+</Note>
+
+## Authentication Errors
+
+### Missing Authorization Header
+
+```json
+{
+  "message": "Unauthorized"
+}
+```
+
+Status: `401 Unauthorized`
+
+**Solution**: Include the `Authorization` header in your request.
+
+### Invalid Header Format
+
+```json
+{
+  "message": "Invalid auth header format. Expected: 'Bearer [API_KEY]'"
+}
+```
+
+Status: `401 Unauthorized`
+
+**Solution**: Ensure your header starts with "Bearer " followed by your API key.
+
+### Invalid API Key
+
+```json
+{
+  "message": "Invalid API key"
+}
+```
+
+Status: `401 Unauthorized`
+
+**Solution**: Verify your API key is correct. You may need to regenerate it if it has been compromised.
+
+## API Key Security Best Practices
+
+<AccordionGroup>
+  <Accordion title="Store Securely">
+    Never hardcode your API key in your source code. Use environment variables instead:
+    
+    ```bash
+    # .env file
+    PINGPILOT_API_KEY=your_api_key_here
+    ```
+    
+    ```javascript
+    // In your code
+    const apiKey = process.env.PINGPILOT_API_KEY
+    ```
+  </Accordion>
+
+  <Accordion title="Never Commit to Git">
+    Add your environment files to `.gitignore` to prevent accidentally committing your API key:
+    
+    ```bash
+    # .gitignore
+    .env
+    .env.local
+    .env.production
+    ```
+  </Accordion>
+
+  <Accordion title="Use Different Keys for Different Environments">
+    Create separate PingPilot accounts for development, staging, and production environments. This way, if a development key is compromised, your production notifications remain secure.
+  </Accordion>
+
+  <Accordion title="Rotate Keys Regularly">
+    Consider regenerating your API key periodically or immediately if you suspect it has been compromised.
+  </Accordion>
+</AccordionGroup>
+
+## API Key Properties
+
+Each API key in PingPilot:
+
+- Is **unique** to your user account
+- Is **automatically generated** when you create your account
+- Is **stored securely** in the database
+- **Never expires** (unless regenerated)
+- Has **no rate limiting** beyond your plan's quota
+
+## Database Storage
+
+API keys are stored in the `User` model:
+
+```prisma
+model User {
+  id     String @id @default(cuid())
+  email  String @unique
+  apiKey String @unique @default(cuid())
+  // ... other fields
+}
+```
+
+The API key is:
+- Generated using `cuid()` for uniqueness
+- Indexed for fast lookups
+- Unique across all users
+
+## Regenerating Your API Key
+
+<Warning>
+  Regenerating your API key will immediately invalidate the old key. Any applications using the old key will stop working until you update them with the new key.
+</Warning>
+
+To regenerate your API key:
+
+<Steps>
+  <Step title="Go to API Key Settings">
+    Navigate to **Dashboard** > **API Key**
+  </Step>
+  
+  <Step title="Click Regenerate">
+    Click the "Regenerate API Key" button
+  </Step>
+  
+  <Step title="Confirm the Action">
+    Confirm that you want to regenerate your key
+  </Step>
+  
+  <Step title="Update Your Applications">
+    Copy the new API key and update all applications that use the PingPilot API
+  </Step>
+</Steps>
+
+## Testing Your API Key
+
+You can quickly test if your API key is working by sending a test event:
+
+```bash
+curl -X POST https://pingpilot.com/api/v1/event \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "category": "test",
+    "description": "Testing API key"
+  }'
+```
+
+If successful, you'll receive:
+
+```json
+{
+  "message": "Event processed successfully",
+  "eventId": "clxxx..."
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Sending Events" icon="paper-plane" href="/guides/sending-events">
+    Learn how to send events using your API key
+  </Card>
+  <Card title="Creating Categories" icon="folder" href="/guides/creating-categories">
+    Set up event categories for better organization
+  </Card>
+</CardGroup>

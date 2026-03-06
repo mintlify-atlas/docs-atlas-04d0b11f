@@ -1,0 +1,189 @@
+---
+title: "Event Monitoring"
+description: "Real-time event tracking and notification system"
+---
+
+## Overview
+
+PingPilot's event monitoring system allows you to track critical events in your applications and receive instant notifications across multiple channels. Events are validated, categorized, and delivered to Discord, Telegram, Email, and WhatsApp.
+
+## How It Works
+
+The event flow follows this path:
+
+1. **POST Request** - Send event data to `/api/v1/event`
+2. **Authentication** - API key validation via Bearer token
+3. **Validation** - Request body and category verification
+4. **Quota Check** - Ensure you haven't exceeded monthly limits
+5. **Notification Delivery** - Multi-channel message dispatch
+6. **Status Tracking** - Event marked as DELIVERED or FAILED
+
+<Info>
+Events are tracked with delivery status: `PENDING`, `DELIVERED`, or `FAILED`. This helps you monitor notification reliability.
+</Info>
+
+## Sending Events
+
+To send an event to PingPilot, make a POST request to the event endpoint:
+
+```bash
+curl -X POST https://your-domain.com/api/v1/event \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "category": "sale",
+    "description": "New purchase completed",
+    "fields": {
+      "amount": 99.99,
+      "customer": "john@example.com",
+      "product": "Premium Plan"
+    }
+  }'
+```
+
+### Request Structure
+
+The event API accepts the following fields:
+
+<ParamField path="category" type="string" required>
+  The name of an existing event category. Category must be created in your dashboard first.
+</ParamField>
+
+<ParamField path="description" type="string" optional>
+  Human-readable description of what happened. If omitted, defaults to "A new {category} event has occurred!"
+</ParamField>
+
+<ParamField path="fields" type="object" optional>
+  Custom key-value pairs with event details. Supports strings, numbers, and booleans.
+</ParamField>
+
+### Authentication Requirements
+
+Before sending events, ensure your account is properly configured:
+
+<Warning>
+- **Discord ID** must be set in account settings
+- **Telegram username** must be configured to receive notifications
+- Missing configuration will result in a 403 error
+</Warning>
+
+## Quota Limits
+
+Event monitoring enforces monthly quotas based on your plan:
+
+| Plan | Monthly Events |
+|------|---------------|
+| Free | Limited quota |
+| Pro | Expanded quota |
+| Enterprise | Maximum quota |
+
+When you reach your monthly limit, the API returns a 429 status code with the message:
+
+```json
+{
+  "message": "Monthly quota reached. Please upgrade your plan for more events"
+}
+```
+
+<Tip>
+Quota resets automatically at the start of each calendar month.
+</Tip>
+
+## Response Format
+
+### Success Response (200)
+
+```json
+{
+  "message": "Event processed successfully",
+  "eventId": "clx123abc456"
+}
+```
+
+### Error Responses
+
+**401 Unauthorized** - Invalid or missing API key:
+```json
+{
+  "message": "Invalid API key"
+}
+```
+
+**404 Not Found** - Category doesn't exist:
+```json
+{
+  "message": "You dont have a category named \"sale\""
+}
+```
+
+**422 Validation Error** - Invalid request format:
+```json
+{
+  "message": "Validation error details"
+}
+```
+
+**500 Server Error** - Delivery failed:
+```json
+{
+  "message": "Error processing event",
+  "eventId": "clx123abc456"
+}
+```
+
+## Event Formatting
+
+When an event is received, PingPilot formats it for delivery:
+
+- **Title**: `{emoji} {CategoryName}` (capitalized, with category emoji)
+- **Description**: Your custom description or default message
+- **Color**: The hex color assigned to the category
+- **Timestamp**: ISO 8601 format
+- **Fields**: Custom fields displayed as key-value pairs
+
+Example formatted output:
+
+```
+🎉 Event Notification 🎉
+
+📌 Category: 💰 Sale
+📝 Description: New purchase completed
+🎨 Color Code: #ffeb3b
+🕒 Timestamp: 2026-03-06T10:30:00.000Z
+
+📌 Details:
+🔹 amount: 99.99
+🔹 customer: john@example.com
+🔹 product: Premium Plan
+```
+
+## Delivery Channels
+
+Events are automatically sent to all configured channels:
+
+### Discord
+Sent as an embedded message to your Discord DM. The embed includes the category color, title, description, and all custom fields displayed inline.
+
+### Telegram
+Formatted text message sent to your Telegram account with emoji indicators and structured field layout.
+
+### Email
+HTML email template with color-coded header matching your category, timestamp, and formatted field table.
+
+### WhatsApp
+Planned for future integration (field exists in schema but not yet implemented).
+
+<Note>
+All channels are attempted simultaneously. If one fails, others may still succeed. Check delivery status in your dashboard.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Event Categories" icon="folder" href="/features/event-categories">
+    Create and manage categories for organizing events
+  </Card>
+  <Card title="Analytics Dashboard" icon="chart-line" href="/features/analytics-dashboard">
+    View event history and track delivery metrics
+  </Card>
+</CardGroup>

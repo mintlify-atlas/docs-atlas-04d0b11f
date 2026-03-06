@@ -1,0 +1,262 @@
+---
+title: 'WhatsApp Integration'
+description: 'Receive event notifications on WhatsApp Business'
+icon: 'whatsapp'
+---
+
+PingPilot supports WhatsApp notifications using the WhatsApp Business API (Meta Cloud API), allowing you to receive event alerts directly in WhatsApp.
+
+<Warning>
+  WhatsApp integration is currently available for Enterprise plans only and requires manual setup by the PingPilot team.
+</Warning>
+
+## How It Works
+
+The WhatsApp integration uses Meta's WhatsApp Business Cloud API to:
+
+1. Send notifications to verified WhatsApp numbers
+2. Use pre-approved message templates
+3. Deliver real-time event notifications
+
+<Info>
+  WhatsApp has strict requirements for business messaging. All message templates must be approved by Meta before use.
+</Info>
+
+## Prerequisites
+
+To use WhatsApp notifications, you need:
+
+- **Enterprise Plan**: WhatsApp is available for Enterprise customers only
+- **WhatsApp Account**: A valid WhatsApp account with the registered number
+- **Manual Setup**: Contact PingPilot support to enable WhatsApp for your account
+
+## Setup Process
+
+<Steps>
+  <Step title="Contact Support">
+    Reach out to PingPilot support to request WhatsApp integration
+  </Step>
+  <Step title="Provide Your Number">
+    Submit your WhatsApp number in international format (e.g., +1234567890)
+  </Step>
+  <Step title="Verification">
+    Complete the verification process with Meta
+  </Step>
+  <Step title="Template Approval">
+    Wait for message templates to be approved by Meta (typically 24-48 hours)
+  </Step>
+  <Step title="Configuration">
+    PingPilot team will configure your account with WhatsApp access
+  </Step>
+</Steps>
+
+## Technical Implementation
+
+The WhatsApp integration uses Meta's Graph API:
+
+```typescript
+// Source: src/lib/whatsapp.ts
+const WHATSAPP_API_URL = 
+  "https://graph.facebook.com/v22.0/574181239111657/messages"
+
+export async function sendWhatsappTextMessage() {
+  const response = await fetch(WHATSAPP_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+    },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: "919133533051",
+      type: "template",
+      template: { 
+        name: "hello_world", 
+        language: { code: "en_US" } 
+      },
+    }),
+  })
+}
+```
+
+See the implementation in `src/lib/whatsapp.ts:4`.
+
+## Message Templates
+
+WhatsApp requires pre-approved message templates. The current implementation uses:
+
+- **Template Name**: `hello_world`
+- **Language**: English (en_US)
+- **Type**: Notification template
+
+<Note>
+  Custom event templates are being developed. Currently, WhatsApp integration uses a basic template for testing.
+</Note>
+
+## API Configuration
+
+The WhatsApp integration requires:
+
+### Environment Variables
+
+- `WHATSAPP_TOKEN`: Meta access token for WhatsApp Business API
+- Phone number configured in Meta Business Suite
+
+### API Endpoint
+
+The integration uses:
+
+```
+POST https://graph.facebook.com/v22.0/{PHONE_NUMBER_ID}/messages
+```
+
+## Current Limitations
+
+<Warning>
+  The WhatsApp integration is in active development. Current limitations include:
+</Warning>
+
+1. **Template Only**: Currently limited to pre-approved templates
+2. **No Custom Fields**: Event-specific data not yet supported in messages
+3. **Manual Configuration**: Requires PingPilot team setup
+4. **Enterprise Only**: Available for Enterprise plan customers
+5. **Single Number**: Hardcoded recipient in current implementation
+
+## Future Enhancements
+
+Planned improvements for WhatsApp integration:
+
+- Dynamic event templates with custom fields
+- User-configurable phone numbers in account settings
+- Rich media support (images, documents)
+- Interactive button messages
+- Delivery status tracking
+- Template management interface
+
+## WhatsApp Business Requirements
+
+To use WhatsApp Business API, your organization must:
+
+1. **Business Verification**: Complete Meta Business verification
+2. **Phone Number**: Provide a dedicated business phone number
+3. **Compliance**: Follow WhatsApp Business Policy guidelines
+4. **Templates**: Get message templates approved by Meta
+
+<Info>
+  The PingPilot team handles most of these requirements. You just need to provide your WhatsApp number and complete verification.
+</Info>
+
+## Testing WhatsApp Integration
+
+Currently, WhatsApp testing is handled by the PingPilot team:
+
+```typescript
+// Test endpoint
+POST /api/test
+```
+
+This sends a test message using the `hello_world` template.
+
+<Note>
+  User-facing WhatsApp testing will be available once custom templates are implemented.
+</Note>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="WhatsApp not available in settings">
+    **Possible reasons:**
+    
+    1. You're not on an Enterprise plan
+    2. WhatsApp hasn't been enabled for your account
+    3. Contact PingPilot support to enable WhatsApp
+  </Accordion>
+  
+  <Accordion title="Not receiving WhatsApp messages">
+    **Check the following:**
+    
+    1. Verify your phone number is correctly registered
+    2. Ensure you have WhatsApp installed and active
+    3. Check if you've blocked the PingPilot business number
+    4. Contact support to verify your configuration
+  </Accordion>
+  
+  <Accordion title="Template approval pending">
+    If your custom templates are pending:
+    
+    1. Meta typically reviews templates within 24-48 hours
+    2. Check your Meta Business Suite for approval status
+    3. Contact PingPilot support for assistance
+  </Accordion>
+  
+  <Accordion title="API rate limits">
+    WhatsApp Business API has rate limits:
+    
+    1. Tier-based messaging limits (1K, 10K, 100K+ messages/day)
+    2. Your tier increases automatically based on quality and volume
+    3. Contact support if you need higher limits
+  </Accordion>
+</AccordionGroup>
+
+## WhatsApp vs Other Channels
+
+| Feature | WhatsApp | Discord | Telegram | Email |
+|---------|----------|---------|----------|-------|
+| Setup Complexity | High | Low | Low | None |
+| Real-time | Yes | Yes | Yes | Delayed |
+| Rich Formatting | Limited | Full | Moderate | Full |
+| Template Required | Yes | No | No | No |
+| Self-Service | No | Yes | Yes | Yes |
+| Plan Requirement | Enterprise | All | All | All |
+
+## Requesting WhatsApp Access
+
+To enable WhatsApp notifications:
+
+1. **Upgrade to Enterprise**: Ensure you're on an Enterprise plan
+2. **Contact Support**: Email support@pingpilot.com with:
+   - Your account email
+   - WhatsApp number (international format)
+   - Business name for verification
+3. **Complete Verification**: Follow Meta's verification process
+4. **Wait for Setup**: PingPilot team will configure your account
+
+<Info>
+  Enterprise customers can contact their account manager directly for WhatsApp setup.
+</Info>
+
+## Pricing
+
+WhatsApp messaging costs:
+
+- **Included in Enterprise Plan**: First 1,000 messages/month
+- **Overage**: $0.005 per message (after included quota)
+- **Template Fees**: Waived for PingPilot customers
+
+<Note>
+  Pricing is subject to change based on Meta's WhatsApp Business API pricing.
+</Note>
+
+## Compliance
+
+WhatsApp Business messaging must comply with:
+
+- **24-hour Window**: Free-form messages only within 24 hours of user contact
+- **Templates Required**: Outside 24-hour window, use approved templates
+- **Opt-in Required**: Users must opt-in to receive business messages
+- **Privacy Policy**: Must have a privacy policy for business messaging
+
+<Warning>
+  Violations of WhatsApp Business Policy can result in account suspension. PingPilot ensures compliance through template-based messaging.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Contact Sales" icon="phone" href="mailto:support@pingpilot.com">
+    Discuss Enterprise plan and WhatsApp access
+  </Card>
+  <Card title="Other Integrations" icon="plug" href="/integrations/overview">
+    Explore other notification channels
+  </Card>
+</CardGroup>

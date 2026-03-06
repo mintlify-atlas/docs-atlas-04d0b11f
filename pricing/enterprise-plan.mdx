@@ -1,0 +1,191 @@
+---
+title: "Enterprise Plan"
+description: "Large-scale event monitoring with maximum capacity and custom features"
+---
+
+## Enterprise Plan Overview
+
+The Enterprise plan is designed for large-scale deployments, high-volume applications, and organizations that need maximum capacity and custom solutions.
+
+## Plan Limits
+
+<CardGroup cols={2}>
+  <Card title="Events per Month" icon="calendar">
+    **10,000 events**
+    
+    10x more events than Pro - handle high-volume event streams
+  </Card>
+  
+  <Card title="Event Categories" icon="folder">
+    **100 categories**
+    
+    Maximum organization flexibility for complex enterprise systems
+  </Card>
+</CardGroup>
+
+## Everything in Pro, Plus:
+
+### Maximum Capacity
+- **10,000 events per month**: 100x more than Free, 10x more than Pro
+- **100 event categories**: Organize even the most complex systems
+- Suitable for high-traffic production environments
+
+### Enterprise Support
+- Dedicated support channel
+- Fastest response times
+- Direct access to engineering team
+- Help with custom integrations
+
+### Custom Features
+- Custom integration development available
+- Tailored solutions for your specific needs
+- Priority feature requests
+- White-glove onboarding
+
+## All Core Features Included
+
+<CardGroup cols={3}>
+  <Card title="Multi-Channel" icon="bell">
+    Discord, Telegram, email notifications
+  </Card>
+  
+  <Card title="Custom Categories" icon="palette">
+    100 custom event categories
+  </Card>
+  
+  <Card title="Full API" icon="code">
+    Complete REST API access
+  </Card>
+  
+  <Card title="Dashboard" icon="chart-line">
+    Real-time monitoring
+  </Card>
+  
+  <Card title="Priority Support" icon="headset">
+    Dedicated enterprise support
+  </Card>
+  
+  <Card title="Custom Features" icon="wrench">
+    Tailored solutions available
+  </Card>
+</CardGroup>
+
+## Quota Management
+
+The Enterprise plan provides the highest quotas available:
+
+```typescript
+// From quota.ts
+export const ENTERPRISE_QUOTA = {
+  maxEventsPerMonth: 10000,
+  maxEventCategories: 100,
+} as const
+```
+
+- **10,000 events per month**: Enough capacity for high-volume production systems
+- **100 categories**: Maximum organization for complex architectures
+- Monthly reset on the 1st of each month
+- Real-time quota monitoring in dashboard
+
+See [quota.ts:12-15](/home/daytona/workspace/source/src/constants/quota.ts) for the full quota definition.
+
+## Use Cases
+
+The Enterprise plan is ideal for:
+
+<CardGroup cols={2}>
+  <Card title="Enterprise SaaS" icon="building">
+    Large-scale SaaS products with thousands of users and events
+  </Card>
+  
+  <Card title="Microservices" icon="network-wired">
+    Complex architectures with many services generating events
+  </Card>
+  
+  <Card title="E-commerce Platforms" icon="shopping-cart">
+    High-traffic platforms monitoring orders, payments, and user activity
+  </Card>
+  
+  <Card title="DevOps Monitoring" icon="server">
+    Large infrastructure with extensive monitoring needs
+  </Card>
+  
+  <Card title="Multi-Tenant Apps" icon="users">
+    Applications serving multiple organizations or teams
+  </Card>
+  
+  <Card title="Analytics Platforms" icon="chart-pie">
+    Systems processing high volumes of analytics events
+  </Card>
+</CardGroup>
+
+## Performance at Scale
+
+The Enterprise plan is battle-tested for high-volume scenarios:
+
+- Event processing optimized for throughput
+- Quota tracking uses efficient database upserts
+- Delivery status tracking for reliability
+- Monthly quota resets maintain consistent performance
+
+<Tip>
+  The quota system uses atomic increments to prevent race conditions: [route.ts:198-207](/home/daytona/workspace/source/src/app/api/v1/event/route.ts)
+</Tip>
+
+## Custom Solutions
+
+Need something beyond the standard Enterprise plan?
+
+<CardGroup cols={2}>
+  <Card title="Custom Quotas" icon="gauge">
+    Higher event limits or custom rate limiting
+  </Card>
+  
+  <Card title="Additional Channels" icon="share-nodes">
+    Slack, SMS, webhooks, or custom integrations
+  </Card>
+  
+  <Card title="White-Label" icon="tag">
+    Branded notifications and dashboard
+  </Card>
+  
+  <Card title="On-Premise" icon="building-shield">
+    Self-hosted deployment for maximum control
+  </Card>
+</CardGroup>
+
+## Pricing
+
+The Enterprise plan is a one-time payment processed securely through Stripe. Visit your dashboard to see current pricing and checkout.
+
+<Info>
+  Enterprise checkout uses the same Stripe integration as Pro, with a different price ID: [stripe.ts:21-24](/home/daytona/workspace/source/src/lib/stripe.ts)
+</Info>
+
+## Upgrading to Enterprise
+
+<Steps>
+  <Step title="Go to your dashboard">
+    Navigate to the pricing section
+  </Step>
+  
+  <Step title="Select Enterprise plan">
+    Click on the Enterprise plan upgrade button
+  </Step>
+  
+  <Step title="Complete checkout">
+    Secure payment via Stripe
+  </Step>
+  
+  <Step title="Immediate activation">
+    Your Enterprise quotas activate instantly
+  </Step>
+</Steps>
+
+## Need More?
+
+If you need quotas beyond the Enterprise plan limits, contact support to discuss custom solutions:
+
+<Card title="Contact Sales" icon="envelope" href="mailto:support@pingpilot.com">
+  Discuss custom enterprise solutions and pricing
+</Card>

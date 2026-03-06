@@ -1,0 +1,150 @@
+---
+title: 'User Authentication'
+description: 'Learn how PingPilot uses Clerk for secure user authentication'
+icon: 'shield-halved'
+---
+
+## Overview
+
+PingPilot uses [Clerk](https://clerk.com) for authentication, providing a secure and seamless sign-in experience. Clerk handles all aspects of user authentication, including sign-up, sign-in, session management, and user profiles.
+
+## Authentication Flow
+
+When users access protected routes in PingPilot, they are automatically authenticated through Clerk's middleware:
+
+1. User attempts to access a protected route (e.g., `/dashboard`)
+2. Clerk middleware intercepts the request
+3. If not authenticated, user is redirected to the sign-in page
+4. After successful authentication, user is redirected to their intended destination
+
+## Protected Routes
+
+The following routes are protected by Clerk authentication:
+
+- `/dashboard/*` - All dashboard pages
+- `/welcome` - Onboarding page
+- `/api/*` - API routes (excluding the public event endpoint)
+- `/trpc/*` - tRPC routes
+
+## Sign In & Sign Up
+
+### Sign In Page
+
+Users can sign in at `/sign-in` using:
+- Email and password
+- OAuth providers (if configured)
+- Magic links
+
+### Sign Up Page
+
+New users can create an account at `/sign-up`. Upon successful registration:
+1. A new user record is created in the database
+2. A unique API key is automatically generated
+3. User is redirected to the onboarding flow
+
+## User Session
+
+Clerk maintains user sessions across the application. You can access the current user in:
+
+### Server Components
+
+```typescript
+import { currentUser } from "@clerk/nextjs/server"
+
+const user = await currentUser()
+
+if (!user) {
+  redirect("/sign-in")
+}
+```
+
+### Client Components
+
+```typescript
+import { useUser } from "@clerk/nextjs"
+
+const { user, isLoaded, isSignedIn } = useUser()
+
+if (!isLoaded || !isSignedIn) {
+  return <div>Loading...</div>
+}
+```
+
+## User Profile Management
+
+Clerk provides a built-in user button component for profile management:
+
+```typescript
+import { UserButton } from "@clerk/nextjs"
+
+<UserButton />
+```
+
+This component allows users to:
+- View their profile
+- Update account settings
+- Sign out
+
+## Security Features
+
+<AccordionGroup>
+  <Accordion title="Session Management">
+    Clerk automatically manages user sessions with secure, httpOnly cookies. Sessions are refreshed automatically and expire after periods of inactivity.
+  </Accordion>
+
+  <Accordion title="Password Security">
+    Clerk enforces strong password requirements and handles secure password hashing. Passwords are never stored in plain text.
+  </Accordion>
+
+  <Accordion title="OAuth Integration">
+    Clerk supports OAuth providers for social sign-in, allowing users to authenticate with their existing accounts while maintaining security.
+  </Accordion>
+</AccordionGroup>
+
+## Database Integration
+
+When a user signs up through Clerk:
+
+1. Clerk creates a user account with a unique `externalId`
+2. PingPilot creates a corresponding `User` record in the database
+3. The `externalId` links the Clerk user to the PingPilot user
+4. A unique `apiKey` is generated for API authentication
+
+```prisma
+model User {
+  id         String  @id @default(cuid())
+  externalId String? @unique  // Clerk user ID
+  email      String  @unique
+  apiKey     String  @unique @default(cuid())
+  // ... other fields
+}
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Redirect loops">
+    If you experience redirect loops, ensure that:
+    - Your Clerk API keys are correctly configured
+    - The middleware matcher is properly set up
+    - You're not blocking Clerk's internal routes
+  </Accordion>
+
+  <Accordion title="Session not persisting">
+    Check that:
+    - Cookies are enabled in your browser
+    - You're not in incognito/private mode
+    - Your domain is correctly configured in Clerk
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Keys" icon="key" href="/guides/api-keys">
+    Learn how to manage your API key for programmatic access
+  </Card>
+  <Card title="Account Settings" icon="gear" href="/guides/managing-notifications">
+    Configure your notification preferences
+  </Card>
+</CardGroup>

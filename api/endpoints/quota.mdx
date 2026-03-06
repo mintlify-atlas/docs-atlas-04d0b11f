@@ -1,0 +1,280 @@
+---
+title: 'Quota Management'
+description: 'Check your API usage and quota limits'
+---
+
+## Overview
+
+The quota endpoint allows you to check your current API usage against your plan's monthly limits.
+
+<Info>
+  This endpoint uses Hono.js server procedures and requires authentication via session cookies (not Bearer tokens). It is primarily used by the PingPilot web dashboard.
+</Info>
+
+## Get Usage Statistics
+
+Retrieve current usage statistics for categories and events.
+
+```
+GET /api/usage
+```
+
+### Response
+
+<ResponseField name="categoriesUsed" type="number">
+  Number of event categories you've created.
+</ResponseField>
+
+<ResponseField name="categoriesLimit" type="number">
+  Maximum number of categories allowed by your plan.
+</ResponseField>
+
+<ResponseField name="eventsUsed" type="number">
+  Number of events sent this month.
+</ResponseField>
+
+<ResponseField name="eventsLimit" type="number">
+  Maximum number of events allowed per month by your plan.
+</ResponseField>
+
+<ResponseField name="resetDate" type="string">
+  ISO timestamp when quota resets (first day of next month).
+</ResponseField>
+
+### Success Response
+
+```json
+{
+  "categoriesUsed": 5,
+  "categoriesLimit": 10,
+  "eventsUsed": 247,
+  "eventsLimit": 1000,
+  "resetDate": "2026-04-01T00:00:00.000Z"
+}
+```
+
+---
+
+## Quota Limits by Plan
+
+### Free Plan
+
+```json
+{
+  "categoriesLimit": 3,
+  "eventsLimit": 100
+}
+```
+
+### Pro Plan
+
+```json
+{
+  "categoriesLimit": 10,
+  "eventsLimit": 1000
+}
+```
+
+### Enterprise Plan
+
+```json
+{
+  "categoriesLimit": 100,
+  "eventsLimit": 10000
+}
+```
+
+---
+
+## Usage Calculation
+
+### Categories
+
+Counts all event categories created in your account, regardless of when they were created.
+
+```sql
+SELECT COUNT(*) FROM event_categories WHERE user_id = ?
+```
+
+### Events
+
+Counts only events sent in the **current calendar month**:
+
+```sql
+SELECT count FROM quota 
+WHERE user_id = ? 
+  AND month = CURRENT_MONTH 
+  AND year = CURRENT_YEAR
+```
+
+<Info>
+  The quota counter increments **after** successful event creation, even if delivery fails.
+</Info>
+
+---
+
+## Reset Date
+
+Quota resets on the **1st day of each month** at 00:00:00 UTC.
+
+The `resetDate` field shows when your next reset occurs:
+
+```javascript
+const currentDate = startOfMonth(new Date());
+const resetDate = addMonths(currentDate, 1);
+// Example: 2026-04-01T00:00:00.000Z
+```
+
+---
+
+## Monitoring Usage
+
+### Calculate Remaining Quota
+
+```javascript
+const getRemainingQuota = (usage) => {
+  const eventsRemaining = usage.eventsLimit - usage.eventsUsed;
+  const categoriesRemaining = usage.categoriesLimit - usage.categoriesUsed;
+  
+  return {
+    events: eventsRemaining,
+    categories: categoriesRemaining,
+    eventsPercent: (usage.eventsUsed / usage.eventsLimit) * 100,
+    categoriesPercent: (usage.categoriesUsed / usage.categoriesLimit) * 100
+  };
+};
+```
+
+### Usage Alerts
+
+```javascript
+const checkUsageAlerts = (usage) => {
+  const eventsPercent = (usage.eventsUsed / usage.eventsLimit) * 100;
+  const categoriesPercent = (usage.categoriesUsed / usage.categoriesLimit) * 100;
+  
+  const alerts = [];
+  
+  if (eventsPercent >= 90) {
+    alerts.push({
+      type: 'critical',
+      message: `⚠️ 90% of monthly events used (${usage.eventsUsed}/${usage.eventsLimit})`
+    });
+  } else if (eventsPercent >= 75) {
+    alerts.push({
+      type: 'warning',
+      message: `⚡ 75% of monthly events used (${usage.eventsUsed}/${usage.eventsLimit})`
+    });
+  }
+  
+  if (categoriesPercent >= 100) {
+    alerts.push({
+      type: 'critical',
+      message: `🚫 Category limit reached (${usage.categoriesUsed}/${usage.categoriesLimit})`
+    });
+  }
+  
+  return alerts;
+};
+```
+
+### Days Until Reset
+
+```javascript
+const getDaysUntilReset = (resetDate) => {
+  const now = new Date();
+  const reset = new Date(resetDate);
+  const diffMs = reset - now;
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  return diffDays;
+};
+
+// Usage
+const daysLeft = getDaysUntilReset(usage.resetDate);
+console.log(`Quota resets in ${daysLeft} days`);
+```
+
+---
+
+## Quota Enforcement
+
+### Events
+
+When you reach your monthly event limit:
+
+1. New event requests return **429 Too Many Requests**
+2. Error message: `"Monthly quota reached. Please upgrade your plan for more events"`
+3. Events are **not created** and **not delivered**
+4. Quota counter is **not incremented**
+
+See [Rate Limits](/api/rate-limits) for details.
+
+### Categories
+
+When you reach your category limit:
+
+1. Category creation requests fail
+2. You must delete existing categories or upgrade your plan
+3. Existing categories continue to work normally
+
+---
+
+## Example: Usage Dashboard
+
+```javascript
+const fetchUsageDashboard = async () => {
+  const response = await fetch('/api/usage', {
+    credentials: 'include'
+  });
+  
+  const usage = await response.json();
+  
+  // Calculate metrics
+  const eventsPercent = (usage.eventsUsed / usage.eventsLimit) * 100;
+  const categoriesPercent = (usage.categoriesUsed / usage.categoriesLimit) * 100;
+  const daysLeft = getDaysUntilReset(usage.resetDate);
+  
+  return {
+    ...usage,
+    metrics: {
+      eventsPercent: eventsPercent.toFixed(1),
+      categoriesPercent: categoriesPercent.toFixed(1),
+      daysUntilReset: daysLeft,
+      eventsRemaining: usage.eventsLimit - usage.eventsUsed,
+      categoriesRemaining: usage.categoriesLimit - usage.categoriesUsed
+    },
+    alerts: checkUsageAlerts(usage)
+  };
+};
+
+// Display usage
+const dashboard = await fetchUsageDashboard();
+
+console.log(`📊 Usage Dashboard`);
+console.log(`\nEvents: ${dashboard.eventsUsed}/${dashboard.eventsLimit} (${dashboard.metrics.eventsPercent}%)`);
+console.log(`Categories: ${dashboard.categoriesUsed}/${dashboard.categoriesLimit} (${dashboard.metrics.categoriesPercent}%)`);
+console.log(`\n📅 Resets in ${dashboard.metrics.daysUntilReset} days`);
+
+if (dashboard.alerts.length > 0) {
+  console.log(`\n⚠️ Alerts:`);
+  dashboard.alerts.forEach(alert => console.log(`  ${alert.message}`));
+}
+```
+
+---
+
+## Best Practices
+
+- **Monitor regularly**: Check usage weekly or after bulk operations
+- **Set up alerts**: Notify yourself at 75% and 90% usage
+- **Plan ahead**: Upgrade before hitting limits if usage is consistent
+- **Track trends**: Compare month-over-month usage patterns
+- **Clean up**: Delete unused categories to free up slots
+- **Optimize**: Batch similar events or reduce non-critical notifications
+
+---
+
+## Related Endpoints
+
+- [Rate Limits](/api/rate-limits) - Detailed quota information
+- [Send Event](/api/endpoints/send-event) - Primary endpoint that consumes quota
+- [Category Management](/api/endpoints/categories) - Manage categories within limits

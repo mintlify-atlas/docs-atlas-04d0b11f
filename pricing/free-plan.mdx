@@ -1,0 +1,118 @@
+---
+title: "Free Plan"
+description: "Get started with PingPilot at no cost"
+---
+
+## Free Plan Overview
+
+The Free plan is perfect for personal projects, prototypes, and trying out PingPilot's features without any commitment.
+
+## Plan Limits
+
+<CardGroup cols={2}>
+  <Card title="Events per Month" icon="calendar">
+    **100 events**
+    
+    Track up to 100 events each month across all your categories
+  </Card>
+  
+  <Card title="Event Categories" icon="folder">
+    **3 categories**
+    
+    Create up to 3 custom event categories to organize your notifications
+  </Card>
+</CardGroup>
+
+## What's Included
+
+The Free plan includes all core PingPilot features:
+
+### Multi-Channel Notifications
+- **Discord**: Real-time notifications sent directly to your Discord DMs with rich embeds
+- **Telegram**: Instant messages to your Telegram account with formatted event details
+- **Email**: Professional email notifications for every event
+
+### Event Management
+- Custom event categories with colors and emojis
+- Custom fields for detailed event data
+- Event history and delivery status tracking
+- Real-time dashboard access
+
+### Developer Features
+- Full REST API access
+- Secure API key authentication
+- Comprehensive API documentation
+- Code examples in multiple languages
+
+## Quota Management
+
+Your monthly quota resets on the 1st of each month. You can monitor your usage in the dashboard:
+
+- Current usage vs. limit
+- Events remaining this month
+- Quota reset date
+
+When you reach your monthly limit of 100 events, the API will return a `429` status code:
+
+```json
+{
+  "message": "Monthly quota reached. Please upgrade your plan for more events"
+}
+```
+
+See [quota.ts:84-99](/home/daytona/workspace/source/src/constants/quota.ts) for implementation details.
+
+## Limitations
+
+While the Free plan is great for getting started, consider these limitations:
+
+<Warning>
+  **Event Limit**: 100 events per month may not be sufficient for production applications or frequent monitoring
+</Warning>
+
+<Warning>
+  **Category Limit**: Only 3 event categories means less organization for complex projects
+</Warning>
+
+<Warning>
+  **No Priority Support**: Community support only, no guaranteed response times
+</Warning>
+
+## When to Upgrade
+
+Consider upgrading to [Pro](/pricing/pro-plan) if you:
+
+- Need more than 100 events per month
+- Want to create more than 3 event categories
+- Require priority support
+- Are using PingPilot for production applications
+
+<Card title="Ready to upgrade?" icon="arrow-up" href="/pricing/pro-plan">
+  View Pro plan features and pricing
+</Card>
+
+## Getting Started
+
+Every new PingPilot account starts on the Free plan automatically. No credit card required!
+
+<Steps>
+  <Step title="Sign up">
+    Create your account at [app.pingpilot.com](https://app.pingpilot.com)
+  </Step>
+  
+  <Step title="Configure notifications">
+    Add your Discord ID, Telegram username, and verify your email
+  </Step>
+  
+  <Step title="Create categories">
+    Set up your first event category
+  </Step>
+  
+  <Step title="Get your API key">
+    Copy your API key from the dashboard
+  </Step>
+  
+  <Step title="Send events">
+    Start sending events via the API
+  </Step>
+</Steps>

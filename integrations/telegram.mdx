@@ -1,0 +1,249 @@
+---
+title: 'Telegram Integration'
+description: 'Receive instant event notifications in Telegram'
+icon: 'telegram'
+---
+
+PingPilot sends event notifications to your Telegram account as formatted text messages with emoji indicators and structured event data.
+
+## How It Works
+
+The Telegram integration uses the Telegram Bot API to:
+
+1. Connect your Telegram account via a bot command
+2. Send formatted text messages to your chat
+3. Deliver real-time notifications for all events
+
+<Info>
+  Telegram notifications are sent via a dedicated PingPilot bot directly to your private chat.
+</Info>
+
+## Prerequisites
+
+Before setting up Telegram notifications, you need:
+
+- A Telegram account
+- The Telegram app (mobile or desktop)
+
+## Setup Process
+
+<Steps>
+  <Step title="Get Your API Key">
+    Log in to PingPilot and copy your API key from the dashboard
+  </Step>
+  <Step title="Find the PingPilot Bot">
+    Search for the PingPilot bot in Telegram (the bot username will be provided in your dashboard)
+  </Step>
+  <Step title="Link Your Account">
+    Send the following command to the bot:
+    
+    ```
+    /start YOUR_API_KEY
+    ```
+    
+    Replace `YOUR_API_KEY` with your actual PingPilot API key.
+  </Step>
+  <Step title="Confirmation">
+    You'll receive a confirmation message:
+    
+    ```
+    Congratulations! You have successfully linked your Telegram account. 
+    You will now receive notifications on this chat.
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  Keep your API key private. Anyone with your API key can link their Telegram account to your PingPilot notifications.
+</Warning>
+
+## Linking Process Explained
+
+When you send `/start YOUR_API_KEY`:
+
+1. The bot receives your message and extracts your Telegram Chat ID
+2. Your API key is validated against the PingPilot database
+3. Your Chat ID is stored and linked to your account
+4. Future notifications are sent to this Chat ID
+
+From `src/app/api/telegram/route.ts:12`:
+
+```typescript
+if (data?.message?.text?.startsWith("/start")) {
+  const apiKey = data?.message?.text?.split(" ")[1]
+  const chatId = data?.message?.chat?.id
+  
+  // Validate and link account
+  await db.user.update({
+    where: { id: user.id },
+    data: { telegramUsername: String(chatId) },
+  })
+}
+```
+
+## Notification Format
+
+Telegram notifications are sent as formatted text messages:
+
+```
+🎉 Event Notification 🎉
+
+📌 Category: 🔔 User-Signup
+📝 Description: A new user-signup event has occurred!
+🎨 Color Code: 3B82F6
+🕒 Timestamp: 2026-03-06T10:30:00.000Z
+
+📌 Details:
+🔹 username: testuser
+🔹 email: test@example.com
+```
+
+The message includes:
+
+- **Event Category**: With custom emoji from your category settings
+- **Description**: Custom or default event description
+- **Color Code**: Hex color for visual reference
+- **Timestamp**: ISO 8601 formatted timestamp
+- **Custom Fields**: All additional data you send with the event
+
+## Testing the Integration
+
+After linking your account, test the integration:
+
+```bash
+curl -X POST https://pingpilot.yourdomain.com/api/v1/event \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "category": "test",
+    "description": "Testing Telegram integration",
+    "fields": {
+      "status": "success",
+      "timestamp": "2026-03-06"
+    }
+  }'
+```
+
+You should receive a formatted message in your Telegram chat.
+
+## Technical Implementation
+
+The Telegram integration uses the Telegram Bot API:
+
+```typescript
+// Source: src/lib/telegram.ts
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!
+const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`
+
+export async function sendTextMessage(chatId: string, text: string) {
+  const response = await fetch(`${TELEGRAM_API_URL}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, text }),
+  })
+  
+  if (!response.ok) {
+    throw new Error(result.description)
+  }
+}
+```
+
+See the implementation in `src/lib/telegram.ts:9`.
+
+## API Requirements
+
+<Warning>
+  The Telegram username (Chat ID) is **required**. The API will return a 403 error if it's not configured when you try to send an event.
+</Warning>
+
+From the API handler (`src/app/api/v1/event/route.ts:61`):
+
+```typescript
+if (!user?.telegramUsername) {
+  return NextResponse.json(
+    {
+      message: "Telegram username not set. Please set your telegram username in your account settings to receive notifications"
+    },
+    { status: 403 }
+  )
+}
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Bot doesn't respond to /start">
+    **Check the following:**
+    
+    1. Make sure you're sending the command in the correct format: `/start YOUR_API_KEY`
+    2. Verify your API key is correct (copy it directly from the dashboard)
+    3. Check if you've blocked the bot previously
+    4. Try stopping and restarting the bot conversation
+  </Accordion>
+  
+  <Accordion title="Not receiving notifications">
+    **Verify:**
+    
+    1. Your account is linked (you received the confirmation message)
+    2. You haven't blocked the PingPilot bot
+    3. The bot has permission to send you messages
+    4. Check your event delivery status in the dashboard
+  </Accordion>
+  
+  <Accordion title="API returns 403 error">
+    If you get:
+    
+    ```json
+    {
+      "message": "Telegram username not set. Please set your telegram username in your account settings to receive notifications"
+    }
+    ```
+    
+    You haven't linked your Telegram account. Complete the setup process with `/start YOUR_API_KEY`.
+  </Accordion>
+  
+  <Accordion title="Cannot send messages to bot">
+    If you try to send any message other than `/start`:
+    
+    ```
+    You cannot send messages to this bot.
+    ```
+    
+    The PingPilot bot only accepts the `/start` command for account linking. It's designed to send notifications, not receive messages.
+  </Accordion>
+</AccordionGroup>
+
+## Webhook Configuration
+
+The PingPilot Telegram bot uses webhooks to receive messages. The webhook endpoint is:
+
+```
+POST /api/telegram
+```
+
+This endpoint is automatically configured by the PingPilot system administrator.
+
+<Note>
+  Users don't need to configure webhooks manually. This is handled automatically by the PingPilot infrastructure.
+</Note>
+
+## Unlinking Your Account
+
+To unlink your Telegram account:
+
+1. Go to your PingPilot account settings
+2. Remove your Telegram username
+3. Block the PingPilot bot in Telegram (optional)
+
+You can relink at any time by following the setup process again.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Discord Integration" icon="discord" href="/integrations/discord">
+    Set up Discord notifications
+  </Card>
+  <Card title="Email Integration" icon="envelope" href="/integrations/email">
+    Configure email notifications
+  </Card>
+</CardGroup>

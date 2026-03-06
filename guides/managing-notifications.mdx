@@ -1,0 +1,454 @@
+---
+title: 'Managing Notification Preferences'
+description: 'Configure your Discord, Telegram, WhatsApp, and email notification settings'
+icon: 'bell'
+---
+
+## Overview
+
+PingPilot sends notifications to multiple channels when events occur. You can configure your notification preferences in the account settings to receive alerts via Discord, Telegram, WhatsApp, and email.
+
+<Note>
+  You must configure at least your Discord ID and Telegram username to receive event notifications. These are required fields checked before processing events.
+</Note>
+
+## Notification Channels
+
+PingPilot supports four notification channels:
+
+<CardGroup cols={2}>
+  <Card title="Discord" icon="discord">
+    Receive rich embedded messages in Discord DMs
+  </Card>
+  <Card title="Telegram" icon="telegram">
+    Get instant text notifications via Telegram
+  </Card>
+  <Card title="Email" icon="envelope">
+    HTML formatted emails with event details
+  </Card>
+  <Card title="WhatsApp" icon="whatsapp">
+    SMS notifications to your WhatsApp number
+  </Card>
+</CardGroup>
+
+## Accessing Account Settings
+
+<Steps>
+  <Step title="Navigate to Dashboard">
+    Log in and go to your PingPilot dashboard
+  </Step>
+  
+  <Step title="Open Account Settings">
+    Click on **Account Settings** in the sidebar
+  </Step>
+  
+  <Step title="Configure Notification Preferences">
+    Update your Discord ID, Telegram username, WhatsApp number, and email
+  </Step>
+  
+  <Step title="Save Changes">
+    Click **Save** to update your preferences
+  </Step>
+</Steps>
+
+## Discord Notifications
+
+### Finding Your Discord ID
+
+<Steps>
+  <Step title="Enable Developer Mode">
+    Open Discord Settings > Advanced > Enable "Developer Mode"
+  </Step>
+  
+  <Step title="Copy Your User ID">
+    Right-click on your username anywhere in Discord and select "Copy User ID"
+  </Step>
+  
+  <Step title="Add to PingPilot">
+    Paste your Discord ID in the Account Settings page
+  </Step>
+</Steps>
+
+### Discord ID Format
+
+Your Discord ID should be a numeric string like:
+- `123456789012345678`
+- `987654321098765432`
+
+<Warning>
+  Your Discord ID is **required** to receive event notifications. The API will return a 403 error if your Discord ID is not set.
+</Warning>
+
+### Discord Message Format
+
+Discord notifications are sent as embedded messages with:
+
+- **Title**: Category emoji + capitalized category name
+- **Description**: Your event description
+- **Color**: Category color (color-coded border)
+- **Timestamp**: When the event occurred
+- **Fields**: All custom fields displayed inline
+
+**Example embed**:
+
+```
+╔══════════════════════════════
+║ 🐛 Bug
+║ 
+║ Critical error in payment processor
+║
+║ severity: high        user_id: 12345
+║ environment: production
+║
+║ Mar 06, 2024 at 10:30 AM
+╚══════════════════════════════
+```
+
+### Discord Bot Setup
+
+PingPilot uses a Discord bot to send direct messages. When you first receive a notification:
+
+1. The bot creates a DM channel with you
+2. Messages are sent directly to your DMs
+3. You don't need to be in a server with the bot
+
+<Tip>
+  Make sure your Discord privacy settings allow direct messages from server members or you may not receive notifications.
+</Tip>
+
+## Telegram Notifications
+
+### Finding Your Telegram Username
+
+Your Telegram username is the handle you chose (starting with `@`):
+
+<Steps>
+  <Step title="Open Telegram">
+    Open the Telegram app on any device
+  </Step>
+  
+  <Step title="Go to Settings">
+    Tap on the menu icon > Settings
+  </Step>
+  
+  <Step title="View Your Username">
+    Your username is displayed below your name (e.g., `@johndoe`)
+  </Step>
+  
+  <Step title="Add to PingPilot">
+    Enter your username (with or without the `@`) in Account Settings
+  </Step>
+</Steps>
+
+### Creating a Telegram Username
+
+If you don't have a username:
+
+<Steps>
+  <Step title="Open Telegram Settings">
+    Tap on the menu > Settings
+  </Step>
+  
+  <Step title="Edit Profile">
+    Tap on your profile section
+  </Step>
+  
+  <Step title="Set Username">
+    Tap "Username" and create a unique username
+  </Step>
+</Steps>
+
+<Warning>
+  Your Telegram username is **required** to receive event notifications. The API will return a 403 error if your Telegram username is not set.
+</Warning>
+
+### Telegram Message Format
+
+Telegram notifications are sent as formatted text messages:
+
+```
+🎉 Event Notification 🎉
+
+📌 Category: 🐛 Bug
+📝 Description: Critical error in payment processor
+🎨 Color Code: 16738667
+🕒 Timestamp: 2024-03-06T10:30:00.000Z
+
+📌 Details:
+🔹 severity: high
+🔹 user_id: 12345
+🔹 environment: production
+```
+
+## Email Notifications
+
+### Email Configuration
+
+Your email is automatically set based on your account registration:
+
+- Email used during sign-up is stored in your user profile
+- Notifications are sent to this email address
+- Email cannot be changed independently (tied to your account)
+
+### Email Format
+
+Emails are sent as HTML with:
+
+- **Subject**: "PingPilot Alert"
+- **Header**: Category title with emoji
+- **Body**: Event description
+- **Details Table**: All custom fields in a formatted table
+- **Timestamp**: When the event occurred
+- **Color Accent**: Category color used for visual elements
+
+**Example email**:
+
+```html
+┌─────────────────────────────────────┐
+│     PingPilot Alert                 │
+├─────────────────────────────────────┤
+│                                     │
+│  🐛 Bug                             │
+│                                     │
+│  Critical error in payment          │
+│  processor                          │
+│                                     │
+│  ┌─────────────┬─────────────┐    │
+│  │ Field       │ Value        │    │
+│  ├─────────────┼─────────────┤    │
+│  │ severity    │ high         │    │
+│  │ user_id     │ 12345        │    │
+│  │ environment │ production   │    │
+│  └─────────────┴─────────────┘    │
+│                                     │
+│  Mar 06, 2024 at 10:30 AM          │
+│                                     │
+└─────────────────────────────────────┘
+```
+
+## WhatsApp Notifications
+
+### WhatsApp Configuration
+
+<Warning>
+  WhatsApp integration may be limited or in beta. Check the account settings page for availability.
+</Warning>
+
+To configure WhatsApp notifications:
+
+<Steps>
+  <Step title="Go to Account Settings">
+    Navigate to **Dashboard** > **Account Settings**
+  </Step>
+  
+  <Step title="Enter Phone Number">
+    Enter your WhatsApp phone number with country code
+  </Step>
+  
+  <Step title="Verify Number">
+    Follow the verification process if required
+  </Step>
+</Steps>
+
+### Phone Number Format
+
+Include your country code:
+- ✅ `+1234567890` (with country code)
+- ✅ `+44 7700 900000`
+- ❌ `1234567890` (missing +)
+
+## Database Storage
+
+Notification preferences are stored in the `User` model:
+
+```prisma
+model User {
+  id               String  @id @default(cuid())
+  email            String  @unique
+  discordId        String?  // Required for events
+  telegramUsername String?  // Required for events
+  whatsappNumber   String?  // Optional
+  // ... other fields
+}
+```
+
+- **discordId**: Stored as string, must be valid Discord user ID
+- **telegramUsername**: Stored as string, with or without `@`
+- **whatsappNumber**: Stored as string, includes country code
+- **email**: Set during registration, used for all email notifications
+
+## Notification Delivery
+
+When an event is triggered:
+
+<Steps>
+  <Step title="Event Received">
+    PingPilot receives your event via the API
+  </Step>
+  
+  <Step title="Validation">
+    System checks that Discord ID and Telegram username are configured
+  </Step>
+  
+  <Step title="Parallel Delivery">
+    Notifications are sent simultaneously to all channels:
+    - Discord embed message
+    - Telegram text message
+    - HTML email
+    - WhatsApp message (if configured)
+  </Step>
+  
+  <Step title="Status Tracking">
+    Event status is updated to `DELIVERED` or `FAILED`
+  </Step>
+</Steps>
+
+### Delivery Status
+
+Each event tracks its delivery status:
+
+```typescript
+enum DeliveryStatus {
+  PENDING    // Event created, delivery in progress
+  DELIVERED  // Successfully sent to all channels
+  FAILED     // Delivery failed for one or more channels
+}
+```
+
+You can view delivery status in your dashboard event history.
+
+## Required vs Optional Settings
+
+<ResponseField name="Discord ID" type="string" required>
+  **Required** - Must be set before sending events. API returns 403 if missing.
+</ResponseField>
+
+<ResponseField name="Telegram Username" type="string" required>
+  **Required** - Must be set before sending events. API returns 403 if missing.
+</ResponseField>
+
+<ResponseField name="Email" type="string" required>
+  **Required** - Automatically set from your account. Cannot be changed independently.
+</ResponseField>
+
+<ResponseField name="WhatsApp Number" type="string" optional>
+  **Optional** - Can be set if you want WhatsApp notifications.
+</ResponseField>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Not Receiving Discord Notifications">
+    - Verify your Discord ID is correct (should be numeric)
+    - Check Discord privacy settings allow DMs
+    - Ensure you haven't blocked the PingPilot bot
+    - Try sending a test event to verify
+  </Accordion>
+
+  <Accordion title="Not Receiving Telegram Notifications">
+    - Confirm your Telegram username is correct
+    - Make sure you have a username set (not just a phone number)
+    - Check if you've blocked the PingPilot bot
+    - Verify your username is public in Telegram settings
+  </Accordion>
+
+  <Accordion title="403 Error When Sending Events">
+    This means required notification settings are missing:
+    
+    ```json
+    {
+      "message": "Please enter your discord ID in your account settings"
+    }
+    ```
+    
+    **Solution**: Add your Discord ID and Telegram username in Account Settings.
+  </Accordion>
+
+  <Accordion title="Event Shows as FAILED Status">
+    If an event is marked as `FAILED`:
+    - Check that all notification settings are correct
+    - Verify you haven't blocked the bots on Discord/Telegram
+    - Check your email isn't marking PingPilot as spam
+    - Try updating your notification settings and sending another test event
+  </Accordion>
+
+  <Accordion title="Emails Going to Spam">
+    - Add `notifications@pingpilot.com` to your contacts
+    - Mark PingPilot emails as "Not Spam"
+    - Check your email provider's spam filters
+  </Accordion>
+</AccordionGroup>
+
+## Privacy & Security
+
+<AccordionGroup>
+  <Accordion title="Data Storage">
+    PingPilot stores:
+    - Discord ID (for sending notifications)
+    - Telegram username (for sending notifications)
+    - WhatsApp number (if provided)
+    - Email address (for account and notifications)
+    
+    This data is used solely for delivering notifications and is never shared with third parties.
+  </Accordion>
+
+  <Accordion title="Bot Permissions">
+    The PingPilot Discord bot only has permission to:
+    - Create DM channels
+    - Send messages to those DM channels
+    
+    It cannot:
+    - Read your messages
+    - Access server information
+    - See your activity
+  </Accordion>
+
+  <Accordion title="Opting Out">
+    To stop receiving notifications:
+    - Block the Discord bot
+    - Block the Telegram bot
+    - Delete your PingPilot account
+    
+    Note: You cannot disable individual notification channels - all configured channels receive events.
+  </Accordion>
+</AccordionGroup>
+
+## Testing Your Notification Settings
+
+After configuring your preferences:
+
+1. Create a test category in your dashboard
+2. Send a test event via the API or dashboard
+3. Verify you receive notifications on all configured channels
+4. Check that the formatting looks correct
+
+```bash
+# Send a test event
+curl -X POST https://pingpilot.com/api/v1/event \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "category": "test",
+    "description": "Testing notification settings",
+    "fields": {
+      "test": "value"
+    }
+  }'
+```
+
+You should receive notifications within seconds on:
+- Discord (embedded message)
+- Telegram (text message)
+- Email (HTML email)
+- WhatsApp (if configured)
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Sending Events" icon="paper-plane" href="/guides/sending-events">
+    Learn how to send events via the API
+  </Card>
+  <Card title="Creating Categories" icon="folder" href="/guides/creating-categories">
+    Set up event categories for your notifications
+  </Card>
+</CardGroup>

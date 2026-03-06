@@ -1,0 +1,397 @@
+---
+title: "Analytics Dashboard"
+description: "Track events, monitor delivery, and analyze patterns"
+---
+
+## Overview
+
+The PingPilot analytics dashboard provides comprehensive insights into your events. View event history, track delivery status, filter by time range, and analyze numeric metrics across all your event categories.
+
+## Dashboard Views
+
+### Main Dashboard
+
+The main dashboard displays a grid of all your event categories with real-time statistics.
+
+**Each category card shows:**
+
+- **Visual Identifier**: Color-coded badge with first letter of category name
+- **Category Name**: With emoji prefix
+- **Creation Date**: When the category was first created
+- **Last Ping**: Relative time since last event ("2 minutes ago")
+- **Unique Fields**: Count of distinct field names used this month
+- **Events This Month**: Total events received since month start
+
+**Card Actions:**
+
+- **View All**: Navigate to detailed category analytics
+- **Delete**: Remove the category (with confirmation modal)
+
+<Info>
+The main dashboard automatically updates when new events arrive or categories are modified.
+</Info>
+
+### Empty State
+
+If you haven't created any categories yet, the dashboard shows a helpful empty state with:
+
+- Instructions to create your first category
+- Link to category creation flow
+- Quick start guide
+
+## Category Analytics
+
+Click "View all" on any category to access detailed analytics.
+
+### Time Range Filters
+
+Switch between three time ranges to analyze your events:
+
+<Tabs>
+  <Tab title="Today">
+    Shows events from the start of the current day (00:00:00).
+  </Tab>
+  <Tab title="This Week">
+    Shows events from the start of the current week (Sunday at 00:00:00).
+  </Tab>
+  <Tab title="This Month">
+    Shows events from the first day of the current month.
+  </Tab>
+</Tabs>
+
+Time ranges are calculated using `date-fns`:
+
+```typescript
+const now = new Date()
+const startDate = {
+  today: startOfDay(now),
+  week: startOfWeek(now, { weekStartsOn: 0 }),
+  month: startOfMonth(now)
+}[timeRange]
+```
+
+### Summary Cards
+
+At the top of each category view, summary cards display key metrics:
+
+#### Total Events Card
+
+Shows the total number of events for the selected time range.
+
+```typescript
+const eventsCount = await db.event.count({
+  where: {
+    EventCategory: { name, userId: ctx.user.id },
+    createdAt: { gte: startDate }
+  }
+})
+```
+
+#### Numeric Field Sum Cards
+
+For every field that contains numeric values, PingPilot automatically generates a summary card showing the total for that time range.
+
+**Calculation Logic:**
+
+```typescript
+data.events.forEach((event) => {
+  Object.entries(event.fields).forEach(([field, value]) => {
+    if (typeof value === "number") {
+      // Add to appropriate time bucket
+      if (isToday(eventDate)) sums[field].today += value
+      if (isAfter(eventDate, weekStart)) sums[field].thisWeek += value
+      if (isAfter(eventDate, monthStart)) sums[field].thisMonth += value
+    }
+  })
+})
+```
+
+<Tip>
+Use numeric fields to track metrics like revenue, user count, API calls, or error counts. They'll automatically appear as summary cards.
+</Tip>
+
+**Example Numeric Fields:**
+
+- `amount`: Total revenue or transaction value
+- `users`: User count or registrations
+- `latency`: API response times
+- `errors`: Error count
+
+## Event Table
+
+The main event table displays all events for the selected category and time range.
+
+### Table Columns
+
+**Default Columns:**
+
+1. **Category**: Name of the event category
+2. **Date**: Creation timestamp (sortable)
+3. **Delivery Status**: Color-coded badge
+
+**Dynamic Columns:**
+
+All custom fields are automatically added as table columns:
+
+```typescript
+Object.keys(data.events[0].fields).map((field) => ({
+  accessorFn: (row: Event) => (row.fields as Record<string, any>)[field],
+  header: field,
+  cell: ({ row }) => (row.original.fields as Record<string, any>)[field] || "-"
+}))
+```
+
+This means the table adapts to your event structure dynamically.
+
+### Sorting
+
+Click the "Date" column header to sort events:
+
+- **Ascending**: Oldest events first
+- **Descending**: Newest events first (default)
+
+The arrow icon indicates current sort direction.
+
+### Delivery Status Badges
+
+Each event shows its delivery status with a color-coded badge:
+
+- **Green (DELIVERED)**: Successfully sent to all channels
+- **Red (FAILED)**: Delivery failed on one or more channels
+- **Yellow (PENDING)**: Delivery not yet attempted
+
+```typescript
+<span className={cn("px-2 py-1 rounded-full text-xs font-semibold", {
+  "bg-green-100 text-green-800": status === "DELIVERED",
+  "bg-red-100 text-red-800": status === "FAILED",
+  "bg-yellow-100 text-yellow-800": status === "PENDING"
+})}>
+  {status}
+</span>
+```
+
+## Pagination
+
+The event table supports pagination for large datasets:
+
+- **Page Size**: Up to 50 events per page (default 20)
+- **Navigation**: Previous/Next buttons
+- **URL Integration**: Page and limit stored in query params
+
+```typescript
+// URL format: /dashboard/category/sale?page=2&limit=30
+const page = parseInt(searchParams.get("page") || "1", 10)
+const limit = parseInt(searchParams.get("limit") || "20", 10)
+```
+
+<Warning>
+Maximum page size is limited to 50 events to ensure fast loading times.
+</Warning>
+
+### Manual Pagination
+
+Pagination is handled server-side for efficiency:
+
+```typescript
+await db.event.findMany({
+  where: { EventCategory: { name, userId: ctx.user.id } },
+  skip: (page - 1) * limit,
+  take: limit,
+  orderBy: { createdAt: "desc" }
+})
+```
+
+This ensures fast performance even with thousands of events.
+
+## Unique Field Tracking
+
+PingPilot tracks how many unique field names appear in your events:
+
+```typescript
+const fieldNames = new Set<string>()
+events.forEach((event) => {
+  Object.keys(event.fields as object).forEach((fieldName) => {
+    fieldNames.add(fieldName)
+  })
+})
+return fieldNames.size
+```
+
+**Use Cases:**
+
+- Monitor schema consistency
+- Detect new field additions
+- Understand data variety
+- Identify missing fields
+
+<Info>
+Unique field count resets at the start of each month, just like event counts.
+</Info>
+
+## Loading States
+
+The dashboard provides clear loading indicators:
+
+### Category Loading
+
+While fetching categories, a centered loading spinner displays.
+
+### Event Loading
+
+When filtering or paginating, the table shows skeleton rows:
+
+```typescript
+{isFetching ? (
+  [...Array(5)].map((_, rowIndex) => (
+    <TableRow key={rowIndex}>
+      {columns.map((_, cellIndex) => (
+        <TableCell key={cellIndex}>
+          <div className="h-4 w-full bg-gray-200 animate-pulse rounded" />
+        </TableCell>
+      ))}
+    </TableRow>
+  ))
+) : (
+  // Actual data rows
+)}
+```
+
+This provides smooth UX during data fetching.
+
+## Real-Time Updates
+
+The dashboard uses React Query for intelligent data fetching:
+
+- **Automatic Refetching**: Categories refresh on window focus
+- **Cache Management**: Previous data shown while loading new data
+- **Optimistic Updates**: UI updates before server confirmation
+
+```typescript
+const { data, isFetching } = useQuery({
+  queryKey: ["events", category.name, page, limit, timeRange],
+  queryFn: async () => {
+    const res = await client.category.getEventsByCategoryName.$get({
+      name: category.name,
+      page: page,
+      limit: limit,
+      timeRange: timeRange
+    })
+    return await res.json()
+  },
+  refetchOnWindowFocus: false
+})
+```
+
+## Polling for New Events
+
+The category detail page polls for new events to detect when the first event arrives:
+
+```typescript
+const { data: pollingData } = useQuery({
+  queryKey: ["category", category.name, "hasEvents"],
+  initialData: { hasEvents: initialHasEvents }
+})
+
+if (!pollingData.hasEvents) {
+  return <EmptyCategoryState categoryName={category.name} />
+}
+```
+
+This ensures the empty state disappears as soon as an event is received.
+
+## Empty States
+
+### No Categories
+
+Shown when you haven't created any categories yet:
+
+- Friendly message
+- Call-to-action button
+- Link to category creation
+
+### No Events in Category
+
+Shown when a category has no events:
+
+- Category-specific message
+- Instructions to send first event
+- Code example with category name
+
+### No Results in Time Range
+
+Shown when filtering produces no results:
+
+- "No results" message in table center
+- Suggestion to try different time range
+
+## Performance Optimizations
+
+### Server-Side Pagination
+
+Only requested events are fetched from the database, not the entire dataset.
+
+### Distinct Field Queries
+
+Unique field counting uses `distinct` to reduce query complexity:
+
+```typescript
+await db.event.findMany({
+  select: { fields: true },
+  distinct: ["fields"]
+})
+```
+
+### Parallel Queries
+
+Multiple statistics are fetched in parallel using `Promise.all`:
+
+```typescript
+const [uniqueFieldCount, eventsCount, lastPing] = await Promise.all([
+  /* queries */
+])
+```
+
+### Memoized Calculations
+
+Expensive calculations are memoized with `useMemo`:
+
+```typescript
+const numericFieldSums = useMemo(() => {
+  // Calculate sums
+}, [data?.events])
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Choose Appropriate Time Ranges">
+    Use "Today" for real-time monitoring, "This Week" for trend analysis, and "This Month" for comprehensive reporting.
+  </Accordion>
+
+  <Accordion title="Monitor Delivery Status">
+    Regularly check for FAILED events and investigate the root cause to ensure reliable notifications.
+  </Accordion>
+
+  <Accordion title="Use Numeric Fields for Metrics">
+    Track quantitative data in numeric fields to leverage automatic summation cards.
+  </Accordion>
+
+  <Accordion title="Keep Field Names Consistent">
+    Use the same field names across events for consistent table columns and easier analysis.
+  </Accordion>
+
+  <Accordion title="Review Unique Field Counts">
+    High unique field counts may indicate inconsistent field naming or overly dynamic schemas.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Event Monitoring" icon="bell" href="/features/event-monitoring">
+    Send more events to populate your dashboard
+  </Card>
+  <Card title="Event Categories" icon="folder" href="/features/event-categories">
+    Create additional categories for better organization
+  </Card>
+</CardGroup>

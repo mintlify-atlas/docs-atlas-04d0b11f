@@ -1,0 +1,289 @@
+---
+title: 'Email Integration'
+description: 'Receive formatted HTML event notifications via email'
+icon: 'envelope'
+---
+
+PingPilot automatically sends event notifications to your registered email address as beautifully formatted HTML messages.
+
+## How It Works
+
+The Email integration uses nodemailer with Gmail SMTP to:
+
+1. Format event data into HTML templates
+2. Send professional-looking notifications
+3. Include all event details in a structured layout
+
+<Info>
+  Email notifications are automatically enabled for all users. Your email address is used from your account registration.
+</Info>
+
+## Prerequisites
+
+No additional setup required! Email notifications work automatically:
+
+- Your email is taken from your account during registration
+- All events are automatically sent to this email
+- No configuration needed in account settings
+
+## Email Format
+
+Email notifications are sent with:
+
+- **From**: `Ping Pilot <noreply@pingpilot.yourdomain.com>`
+- **Subject**: "PingPilot Alert"
+- **Format**: HTML with responsive design
+
+### HTML Template Structure
+
+Each email includes:
+
+1. **Header**: Event type with emoji indicator
+2. **Event Details Card**:
+   - Category name
+   - Description
+   - Color code (with visual preview)
+   - Timestamp
+3. **Custom Fields Table**: Your event-specific data
+4. **Footer**: Link to dashboard and branding
+
+### Example Email
+
+```html
+🔔 User-Signup Notification
+
+┌─────────────────────────────────┐
+│ 📌 Category: User-Signup        │
+│ 📝 Description: New user joined │
+│ 🎨 Color Code: #3B82F6          │
+│ 🕒 Timestamp: 2026-03-06T10:30  │
+│                                 │
+│ 📌 Details:                     │
+│ 🔹 username: johndoe            │
+│ 🔹 email: john@example.com      │
+│ 🔹 plan: PRO                    │
+└─────────────────────────────────┘
+
+Powered by Ping Pilot 🚀
+[View Dashboard]
+```
+
+<Note>
+  The actual email is fully styled with CSS, colors, and responsive design. The above is a text representation.
+</Note>
+
+## Technical Implementation
+
+The email integration uses nodemailer with Gmail SMTP:
+
+```typescript
+// Source: src/lib/email.ts
+import nodemailer from "nodemailer"
+
+export async function sendEmail(to: string, subject: string, html: string) {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.SMTP_EMAIL!,
+      pass: process.env.SMTP_PASSWORD!,
+    },
+  })
+
+  await transporter.sendMail({
+    from: `Ping Pilot <${process.env.SMTP_EMAIL!}>`,
+    to,
+    subject,
+    html,
+  })
+}
+```
+
+See the implementation in `src/lib/email.ts:3`.
+
+## Email Template Function
+
+The HTML template is generated dynamically:
+
+```typescript
+// Source: src/lib/email.ts:27
+export const eventNotificationEmail = (
+  eventType: string,
+  category: string,
+  description: string,
+  colorCode: string,
+  timestamp: string,
+  details: Array<{ name: string; value: string; inline: boolean }>
+) => {
+  return `
+    <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; 
+                background-color: #f9f9f9; padding: 20px; border-radius: 10px;">
+      <h2 style="color: #333;">🔔 ${eventType} Notification</h2>
+      
+      <div style="background-color: #fff; padding: 15px; border-radius: 8px;">
+        <p><strong>📌 Category:</strong> ${category}</p>
+        <p><strong>📝 Description:</strong> ${description}</p>
+        <p><strong>🎨 Color Code:</strong> 
+           <span style="color: #${colorCode};">#${colorCode}</span>
+        </p>
+        <p><strong>🕒 Timestamp:</strong> ${timestamp}</p>
+        
+        <h3 style="color: #007bff;">📌 Details:</h3>
+        <table style="width: 100%;">
+          ${details.map(detail => `
+            <tr>
+              <td style="padding: 5px; font-weight: bold;">🔹 ${detail.name}:</td>
+              <td style="padding: 5px;">${detail.value}</td>
+            </tr>
+          `).join('')}
+        </table>
+      </div>
+      
+      <div style="text-align: center; margin-top: 20px;">
+        <p>Powered by <strong>Ping Pilot</strong> 🚀</p>
+        <a href="https://pingpilot.vishnumouli.me/dashboard" 
+           style="display: inline-block; padding: 10px 20px; 
+                  background-color: #007bff; color: #fff; 
+                  text-decoration: none; border-radius: 5px;">
+          View Dashboard
+        </a>
+      </div>
+    </div>
+  `
+}
+```
+
+## Testing Email Notifications
+
+Test your email integration:
+
+```bash
+curl -X POST https://pingpilot.yourdomain.com/api/v1/event \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "category": "test",
+    "description": "Testing email notification",
+    "fields": {
+      "test_field": "test_value",
+      "status": "active"
+    }
+  }'
+```
+
+Check your inbox for the formatted email notification.
+
+## Email Delivery
+
+From the event handler (`src/app/api/v1/event/route.ts:182`):
+
+```typescript
+const emailTemplate = eventNotificationEmail(
+  "PingPilot Alert",
+  eventData?.title,
+  eventData?.description,
+  String(eventData?.color),
+  eventData?.timestamp,
+  eventData?.fields
+)
+
+await sendEmail(user.email, "PingPilot Alert", emailTemplate)
+```
+
+All emails are sent with:
+
+- Consistent branding
+- Responsive design
+- Color-coded categories
+- Structured data tables
+- Call-to-action link to dashboard
+
+## SMTP Configuration
+
+<Note>
+  SMTP configuration is managed by PingPilot administrators. Users don't need to configure SMTP settings.
+</Note>
+
+The system requires these environment variables:
+
+- `SMTP_EMAIL`: Gmail account for sending emails
+- `SMTP_PASSWORD`: App-specific password for Gmail
+
+These are configured at the server level.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Not receiving emails">
+    **Check the following:**
+    
+    1. Check your spam/junk folder
+    2. Verify your email address is correct in your account settings
+    3. Check if your email provider is blocking emails from PingPilot
+    4. Look for delivery status in your PingPilot dashboard
+  </Accordion>
+  
+  <Accordion title="Emails going to spam">
+    **To prevent this:**
+    
+    1. Add `noreply@pingpilot.yourdomain.com` to your contacts
+    2. Mark a PingPilot email as "Not Spam"
+    3. Create a filter to always allow emails from PingPilot
+  </Accordion>
+  
+  <Accordion title="Email formatting issues">
+    **If the email doesn't look right:**
+    
+    1. Some email clients strip CSS styling
+    2. Try viewing in a different email client
+    3. Enable HTML emails in your email settings
+    4. Contact support if issues persist
+  </Accordion>
+  
+  <Accordion title="Failed delivery status">
+    If your dashboard shows "FAILED" delivery:
+    
+    1. Check the error logs in the dashboard
+    2. Verify your email address is valid
+    3. Contact PingPilot support for SMTP issues
+  </Accordion>
+</AccordionGroup>
+
+## Email Best Practices
+
+<Steps>
+  <Step title="Whitelist the sender">
+    Add PingPilot's email address to your contacts to ensure delivery
+  </Step>
+  <Step title="Create email filters">
+    Set up filters to organize PingPilot notifications in a dedicated folder
+  </Step>
+  <Step title="Monitor delivery status">
+    Check your dashboard regularly for failed deliveries
+  </Step>
+  <Step title="Test before production">
+    Send test events to verify email formatting and delivery
+  </Step>
+</Steps>
+
+## Updating Your Email
+
+To change your email address:
+
+1. Update your account email in PingPilot settings
+2. Verify the new email address
+3. Future notifications will be sent to the new address
+
+<Warning>
+  Changing your email affects all notification deliveries. Make sure to verify the new email address.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Discord Integration" icon="discord" href="/integrations/discord">
+    Add Discord notifications
+  </Card>
+  <Card title="Telegram Integration" icon="telegram" href="/integrations/telegram">
+    Set up Telegram alerts
+  </Card>
+</CardGroup>

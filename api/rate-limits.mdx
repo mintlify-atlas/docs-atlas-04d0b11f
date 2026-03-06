@@ -1,0 +1,194 @@
+---
+title: 'Rate Limits & Quotas'
+description: 'Understand monthly event quotas and plan limits'
+---
+
+## Overview
+
+PingPilot enforces monthly quotas based on your subscription plan. Quotas reset on the first day of each month.
+
+## Quota Limits by Plan
+
+<CardGroup cols={3}>
+  <Card title="Free Plan" icon="gift">
+    **100 events/month**
+    
+    3 event categories
+  </Card>
+  
+  <Card title="Pro Plan" icon="rocket">
+    **1,000 events/month**
+    
+    10 event categories
+  </Card>
+  
+  <Card title="Enterprise Plan" icon="building">
+    **10,000 events/month**
+    
+    100 event categories
+  </Card>
+</CardGroup>
+
+## How Quotas Work
+
+- **Monthly reset**: Quotas reset on the 1st of each month at 00:00 UTC
+- **Per-event counting**: Each successful event delivery counts toward your quota
+- **Failed events**: Events that fail delivery still consume quota (the event is created)
+- **Category limits**: You cannot create more categories than your plan allows
+
+## Quota Exceeded Response
+
+When you exceed your monthly quota, the API returns:
+
+**Status Code:** `429 Too Many Requests`
+
+```json
+{
+  "message": "Monthly quota reached. Please upgrade your plan for more events"
+}
+```
+
+## Checking Your Usage
+
+Use the `/api/v1/quota` endpoint to check your current usage:
+
+```bash
+curl -X GET https://pingpilot.app/api/v1/quota \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+See [Quota Endpoints](/api/endpoints/quota) for details.
+
+## Quota Behavior
+
+### When Quota is Checked
+
+Quota is validated **before** processing your event:
+
+1. Request is authenticated
+2. Account configuration is verified
+3. **Quota is checked** ← Fails here if exceeded
+4. Event is processed and delivered
+5. Quota counter is incremented
+
+This means you won't be charged for events that are rejected due to quota limits.
+
+### Quota Tracking
+
+The system tracks quota using the following logic:
+
+```typescript
+// Current month and year
+const currentMonth = new Date().getMonth() + 1; // 1-12
+const currentYear = new Date().getFullYear();
+
+// Find quota record for current period
+const quota = await db.quota.findUnique({
+  where: {
+    userId: user.id,
+    month: currentMonth,
+    year: currentYear
+  }
+});
+
+// Check against plan limits
+if (quota && quota.count >= quotaLimit) {
+  // Reject with 429
+}
+```
+
+### First Event of the Month
+
+If no quota record exists for the current month, the system:
+
+1. Allows the event (you're not over quota)
+2. Creates a new quota record with `count: 1`
+
+## Upgrading Your Plan
+
+To increase your quota limits:
+
+1. Go to your PingPilot dashboard
+2. Navigate to **Billing & Plans**
+3. Select a higher plan tier
+4. Your new limits take effect immediately
+
+<Info>
+  Upgrading mid-month gives you the new quota immediately. Your event count continues from where it was.
+</Info>
+
+## Best Practices
+
+### Monitor Your Usage
+
+Check quota usage regularly to avoid unexpected rejections:
+
+```javascript
+const checkQuota = async () => {
+  const response = await fetch('https://pingpilot.app/api/v1/quota', {
+    headers: { 'Authorization': `Bearer ${apiKey}` }
+  });
+  
+  const { eventsUsed, eventsLimit, resetDate } = await response.json();
+  
+  if (eventsUsed / eventsLimit > 0.8) {
+    console.warn(`⚠️ 80% of monthly quota used (${eventsUsed}/${eventsLimit})`);
+  }
+};
+```
+
+### Handle Quota Errors Gracefully
+
+```javascript
+const sendEvent = async (eventData) => {
+  try {
+    const response = await fetch('https://pingpilot.app/api/v1/event', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(eventData)
+    });
+    
+    if (response.status === 429) {
+      // Log to local file or alternative service
+      console.error('PingPilot quota exceeded, falling back to local logging');
+      logToFile(eventData);
+      return;
+    }
+    
+    return await response.json();
+  } catch (err) {
+    console.error('Failed to send event:', err);
+  }
+};
+```
+
+### Prioritize Critical Events
+
+When approaching quota limits, send only high-priority events:
+
+```javascript
+const sendEventWithPriority = async (eventData, priority = 'normal') => {
+  // Check quota first
+  const usage = await checkQuota();
+  const usagePercent = usage.eventsUsed / usage.eventsLimit;
+  
+  // Only send critical events if over 90% quota
+  if (usagePercent > 0.9 && priority !== 'critical') {
+    console.log('Quota near limit, skipping non-critical event');
+    return;
+  }
+  
+  return await sendEvent(eventData);
+};
+```
+
+## No Rate Limiting (Yet)
+
+Currently, PingPilot only enforces **monthly quotas**, not per-second rate limits. You can send events as quickly as your infrastructure allows, as long as you're within your monthly quota.
+
+<Warning>
+  Future versions may introduce per-second rate limits. Design your integration to handle potential 429 responses gracefully.
+</Warning>

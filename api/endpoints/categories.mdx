@@ -1,0 +1,369 @@
+---
+title: 'Category Management'
+description: 'Manage event categories via API'
+---
+
+## Overview
+
+Category endpoints allow you to manage event categories programmatically. Categories organize your events and define their visual appearance (color, emoji) in notifications.
+
+<Info>
+  These endpoints use Hono.js server procedures and require authentication via session cookies (not Bearer tokens). They are primarily used by the PingPilot web dashboard.
+</Info>
+
+## Get Event Categories
+
+Retrieve all event categories for the authenticated user.
+
+```
+GET /api/categories
+```
+
+### Response
+
+<ResponseField name="categories" type="array">
+  Array of category objects with event statistics.
+</ResponseField>
+
+<ResponseField name="categories[].id" type="string">
+  Unique category identifier.
+</ResponseField>
+
+<ResponseField name="categories[].name" type="string">
+  Category name (lowercase, alphanumeric with hyphens).
+</ResponseField>
+
+<ResponseField name="categories[].emoji" type="string">
+  Emoji icon for the category.
+</ResponseField>
+
+<ResponseField name="categories[].color" type="number">
+  Integer color code (e.g., `16711680` for red).
+</ResponseField>
+
+<ResponseField name="categories[].uniqueFieldCount" type="number">
+  Number of unique field keys used in events this month.
+</ResponseField>
+
+<ResponseField name="categories[].eventsCount" type="number">
+  Total events in this category for current month.
+</ResponseField>
+
+<ResponseField name="categories[].lastPing" type="string">
+  ISO timestamp of most recent event, or `null` if no events.
+</ResponseField>
+
+<ResponseField name="categories[].createdAt" type="string">
+  ISO timestamp when category was created.
+</ResponseField>
+
+<ResponseField name="categories[].updatedAt" type="string">
+  ISO timestamp when category was last updated.
+</ResponseField>
+
+### Example Response
+
+```json
+{
+  "categories": [
+    {
+      "id": "cat_clx1234567890",
+      "name": "bug",
+      "emoji": "🐛",
+      "color": 16711680,
+      "uniqueFieldCount": 5,
+      "eventsCount": 23,
+      "lastPing": "2026-03-06T10:30:00.000Z",
+      "createdAt": "2026-03-01T00:00:00.000Z",
+      "updatedAt": "2026-03-05T15:20:00.000Z"
+    },
+    {
+      "id": "cat_clx0987654321",
+      "name": "sale",
+      "emoji": "💰",
+      "color": 4294944000,
+      "uniqueFieldCount": 3,
+      "eventsCount": 15,
+      "lastPing": "2026-03-06T09:15:00.000Z",
+      "createdAt": "2026-03-01T00:00:00.000Z",
+      "updatedAt": "2026-03-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+## Create Event Category
+
+Create a new event category.
+
+```
+POST /api/categories
+```
+
+### Request Body
+
+<ParamField body="name" type="string" required>
+  Category name. Must be unique for your account.
+  
+  **Validation:**
+  - Required field
+  - Must contain only letters, numbers, or hyphens
+  - Automatically converted to lowercase
+  
+  **Pattern:** `/^[a-zA-Z0-9-]+$/`
+</ParamField>
+
+<ParamField body="color" type="string" required>
+  Hex color code for the category.
+  
+  **Validation:**
+  - Required field
+  - Must be valid hex format: `#RRGGBB`
+  - Case insensitive
+  
+  **Pattern:** `/^#[0-9A-F]{6}$/i`
+  
+  **Example:** `"#FF0000"`, `"#00ff00"`
+</ParamField>
+
+<ParamField body="emoji" type="string" optional>
+  Emoji icon for the category.
+  
+  **Validation:**
+  - Must be a valid emoji character
+  - Single emoji only
+  
+  **Example:** `"🐛"`, `"💰"`, `"🤔"`
+</ParamField>
+
+### Request Example
+
+```json
+{
+  "name": "payment-failed",
+  "color": "#FF6B6B",
+  "emoji": "💳"
+}
+```
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success or error message.
+</ResponseField>
+
+<ResponseField name="success" type="boolean">
+  Whether the operation succeeded.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Created category object (on success).
+</ResponseField>
+
+### Success Response
+
+```json
+{
+  "message": "Category created",
+  "success": true,
+  "data": {
+    "id": "cat_clx1234567890",
+    "name": "payment-failed",
+    "color": 16737099,
+    "emoji": "💳",
+    "userId": "user_123",
+    "createdAt": "2026-03-06T10:30:00.000Z",
+    "updatedAt": "2026-03-06T10:30:00.000Z"
+  }
+}
+```
+
+### Error Response
+
+```json
+{
+  "message": "Failed to create category",
+  "success": false
+}
+```
+
+---
+
+## Delete Category
+
+Delete an event category and all its events.
+
+```
+DELETE /api/categories
+```
+
+<Warning>
+  Deleting a category permanently removes all events in that category. This action cannot be undone.
+</Warning>
+
+### Request Body
+
+<ParamField body="name" type="string" required>
+  Name of the category to delete.
+</ParamField>
+
+### Request Example
+
+```json
+{
+  "name": "old-category"
+}
+```
+
+### Response
+
+<ResponseField name="message" type="string">
+  Success or error message.
+</ResponseField>
+
+<ResponseField name="success" type="boolean">
+  Whether the operation succeeded.
+</ResponseField>
+
+### Success Response
+
+```json
+{
+  "message": "Category deleted",
+  "success": true
+}
+```
+
+### Error Response
+
+```json
+{
+  "message": "Category not found",
+  "success": false
+}
+```
+
+---
+
+## Poll Category
+
+Check if a category has received any events.
+
+```
+GET /api/categories/poll?name={categoryName}
+```
+
+### Query Parameters
+
+<ParamField query="name" type="string" required>
+  Category name to check.
+</ParamField>
+
+### Response
+
+<ResponseField name="hasEvents" type="boolean">
+  Whether the category has received any events.
+</ResponseField>
+
+### Success Response
+
+```json
+{
+  "hasEvents": true
+}
+```
+
+### Error Response
+
+**Status Code:** `404 Not Found`
+
+```json
+{
+  "message": "Category \"nonexistent\" not found"
+}
+```
+
+---
+
+## Insert Quickstart Categories
+
+Create default starter categories for new users.
+
+```
+POST /api/categories/quickstart
+```
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Whether the operation succeeded.
+</ResponseField>
+
+<ResponseField name="count" type="number">
+  Number of categories created.
+</ResponseField>
+
+### Success Response
+
+Creates three default categories:
+- `bug` (🐛, red: `#ff6b6b`)
+- `sale` (💰, yellow: `#ffeb3b`)
+- `question` (🤔, purple: `#6c5ce7`)
+
+```json
+{
+  "success": true,
+  "count": 3
+}
+```
+
+---
+
+## Category Name Validation
+
+Category names must follow these rules:
+
+<Check>
+  **Valid characters:** Letters (a-z, A-Z), numbers (0-9), hyphens (-)
+</Check>
+
+<Check>
+  **Case:** Automatically converted to lowercase
+</Check>
+
+<Check>
+  **Length:** At least 1 character
+</Check>
+
+<Check>
+  **Uniqueness:** Must be unique per user account
+</Check>
+
+### Valid Examples
+
+- `bug`
+- `sale`
+- `user-signup`
+- `payment-failed`
+- `api-error-500`
+
+### Invalid Examples
+
+- `user signup` (contains space)
+- `payment_failed` (contains underscore)
+- `critical!` (contains special character)
+- `` (empty string)
+
+---
+
+## Plan Limits
+
+The number of categories you can create is limited by your plan:
+
+- **Free:** 3 categories
+- **Pro:** 10 categories
+- **Enterprise:** 100 categories
+
+Attempting to create more categories than your plan allows will fail.

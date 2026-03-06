@@ -1,0 +1,457 @@
+---
+title: 'Installation'
+description: 'Self-host PingPilot on your own infrastructure'
+icon: 'download'
+---
+
+This guide will help you set up a self-hosted instance of PingPilot. Perfect for developers who want full control over their event monitoring infrastructure.
+
+<Note>
+  Looking to just use PingPilot? Check out the [Quickstart guide](/quickstart) instead. This installation guide is for self-hosting the platform.
+</Note>
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+- **Node.js** v18 or higher
+- **npm** or **pnpm** package manager
+- **PostgreSQL** database (local or hosted like [Neon](https://neon.tech))
+- **Git** for version control
+
+<Tip>
+  We recommend using [Neon](https://neon.tech) for PostgreSQL as it provides serverless Postgres with a generous free tier.
+</Tip>
+
+## Clone the Repository
+
+Start by cloning the PingPilot repository:
+
+```bash
+git clone https://github.com/vishnu-mouli-102408/ping-pilot.git
+cd ping-pilot
+```
+
+## Install Dependencies
+
+Install all required packages:
+
+<CodeGroup>
+  ```bash npm
+  npm install
+  ```
+
+  ```bash pnpm
+  pnpm install
+  ```
+
+  ```bash yarn
+  yarn install
+  ```
+</CodeGroup>
+
+The `postinstall` script will automatically run `prisma generate` to set up the database client.
+
+## Environment Configuration
+
+<Steps>
+  <Step title="Create Environment File">
+    Create a `.env` file in the root directory:
+
+    ```bash
+    cp .env.example .env
+    ```
+  </Step>
+
+  <Step title="Configure Database">
+    Add your PostgreSQL connection string:
+
+    ```bash .env
+    DATABASE_URL="postgresql://user:password@host:5432/pingpilot?sslmode=require"
+    ```
+
+    <Tabs>
+      <Tab title="Neon (Recommended)">
+        1. Create a free account at [neon.tech](https://neon.tech)
+        2. Create a new project
+        3. Copy the connection string from the dashboard
+        4. Paste it into your `.env` file
+      </Tab>
+
+      <Tab title="Local PostgreSQL">
+        ```bash
+        DATABASE_URL="postgresql://postgres:password@localhost:5432/pingpilot"
+        ```
+        
+        Make sure your PostgreSQL service is running:
+        ```bash
+        # macOS (Homebrew)
+        brew services start postgresql
+
+        # Linux (systemd)
+        sudo systemctl start postgresql
+        ```
+      </Tab>
+
+      <Tab title="Other Providers">
+        PingPilot works with any PostgreSQL provider:
+        - [Supabase](https://supabase.com)
+        - [Railway](https://railway.app)
+        - [Render](https://render.com)
+        - [AWS RDS](https://aws.amazon.com/rds/)
+        
+        Just copy the connection string from your provider's dashboard.
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Configure Clerk Authentication">
+    PingPilot uses Clerk for authentication. Set up your Clerk application:
+
+    1. Create a free account at [clerk.com](https://clerk.com)
+    2. Create a new application
+    3. Copy your API keys from the Clerk dashboard
+    4. Add them to your `.env` file:
+
+    ```bash .env
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
+    CLERK_SECRET_KEY="sk_test_..."
+    ```
+
+    <Warning>
+      Never commit your `CLERK_SECRET_KEY` to version control. Keep it secure and use environment variables in production.
+    </Warning>
+  </Step>
+
+  <Step title="Configure Discord Bot">
+    To send Discord notifications, create a Discord bot:
+
+    1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
+    2. Click "New Application" and give it a name
+    3. Navigate to the "Bot" section
+    4. Click "Reset Token" to get your bot token
+    5. Add the token to your `.env` file:
+
+    ```bash .env
+    DISCORD_BOT_TOKEN="your_discord_bot_token_here"
+    ```
+
+    6. Enable the following Privileged Gateway Intents:
+       - Presence Intent
+       - Server Members Intent
+       - Message Content Intent
+  </Step>
+
+  <Step title="Configure Telegram Bot (Optional)">
+    For Telegram notifications:
+
+    1. Message [@BotFather](https://t.me/botfather) on Telegram
+    2. Send `/newbot` and follow the instructions
+    3. Copy the bot token provided
+    4. Add it to your `.env` file:
+
+    ```bash .env
+    TELEGRAM_BOT_TOKEN="your_telegram_bot_token_here"
+    ```
+  </Step>
+
+  <Step title="Configure Email (Optional)">
+    For email notifications, configure an SMTP provider:
+
+    ```bash .env
+    SMTP_HOST="smtp.gmail.com"
+    SMTP_PORT="587"
+    SMTP_USER="your-email@gmail.com"
+    SMTP_PASSWORD="your-app-password"
+    SMTP_FROM="noreply@pingpilot.com"
+    ```
+
+    <Tip>
+      For Gmail, you'll need to generate an [App Password](https://support.google.com/accounts/answer/185833) instead of using your regular password.
+    </Tip>
+  </Step>
+
+  <Step title="Configure Stripe (Optional)">
+    If you want to enable paid plans:
+
+    1. Create a [Stripe](https://stripe.com) account
+    2. Get your API keys from the dashboard
+    3. Add them to your `.env` file:
+
+    ```bash .env
+    STRIPE_SECRET_KEY="sk_test_..."
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
+    STRIPE_WEBHOOK_SECRET="whsec_..."
+    ```
+  </Step>
+
+  <Step title="Configure Redis (Optional)">
+    For caching and improved performance, add Redis:
+
+    ```bash .env
+    REDIS_URL="your_upstash_redis_url"
+    REDIS_TOKEN="your_upstash_redis_token"
+    ```
+
+    We recommend [Upstash Redis](https://upstash.com) for serverless Redis.
+  </Step>
+</Steps>
+
+## Database Setup
+
+Set up your database schema using Prisma:
+
+<Steps>
+  <Step title="Run Migrations">
+    ```bash
+    npx prisma migrate dev
+    ```
+
+    This will:
+    - Create all necessary tables (User, Event, EventCategory, Quota)
+    - Set up relationships and indexes
+    - Generate the Prisma Client
+  </Step>
+
+  <Step title="Verify Database">
+    Open Prisma Studio to view your database:
+
+    ```bash
+    npx prisma studio
+    ```
+
+    This opens a visual database browser at `http://localhost:5555`.
+  </Step>
+</Steps>
+
+## Run the Application
+
+<Tabs>
+  <Tab title="Development">
+    Start the development server with hot reload:
+
+    ```bash
+    npm run dev
+    ```
+
+    Your application will be available at `http://localhost:3000`.
+
+    <Note>
+      The development server includes hot module replacement for faster development.
+    </Note>
+  </Tab>
+
+  <Tab title="Production">
+    Build and start the production server:
+
+    ```bash
+    npm run build
+    npm run start
+    ```
+
+    The production build is optimized for performance and includes:
+    - Minified JavaScript and CSS
+    - Optimized images
+    - Server-side rendering
+  </Tab>
+</Tabs>
+
+## Deployment Options
+
+PingPilot can be deployed to various platforms:
+
+<Tabs>
+  <Tab title="Vercel (Recommended)">
+    The easiest way to deploy PingPilot:
+
+    1. Push your code to GitHub
+    2. Import your repository on [Vercel](https://vercel.com)
+    3. Add all environment variables from your `.env` file
+    4. Deploy!
+
+    ```bash
+    # Or use Vercel CLI
+    npm i -g vercel
+    vercel
+    ```
+
+    <Tip>
+      Vercel automatically detects Next.js projects and configures optimal build settings.
+    </Tip>
+  </Tab>
+
+  <Tab title="Cloudflare Pages">
+    Deploy to Cloudflare's edge network:
+
+    1. Update `wrangler.toml` with your project name:
+       ```toml wrangler.toml
+       name = "pingpilot"
+       main = "src/server/index.ts"
+       compatibility_date = "2024-03-29"
+       compatibility_flags = ["nodejs_compat"]
+       ```
+
+    2. Deploy using Wrangler:
+       ```bash
+       npm run deploy
+       ```
+
+    3. Set environment variables in the Cloudflare dashboard
+  </Tab>
+
+  <Tab title="Docker">
+    Create a `Dockerfile`:
+
+    ```dockerfile Dockerfile
+    FROM node:18-alpine AS builder
+    WORKDIR /app
+    COPY package*.json ./
+    RUN npm ci
+    COPY . .
+    RUN npx prisma generate
+    RUN npm run build
+
+    FROM node:18-alpine AS runner
+    WORKDIR /app
+    COPY --from=builder /app/next.config.js ./
+    COPY --from=builder /app/public ./public
+    COPY --from=builder /app/.next ./.next
+    COPY --from=builder /app/node_modules ./node_modules
+    COPY --from=builder /app/package.json ./package.json
+
+    EXPOSE 3000
+    CMD ["npm", "start"]
+    ```
+
+    Build and run:
+    ```bash
+    docker build -t pingpilot .
+    docker run -p 3000:3000 --env-file .env pingpilot
+    ```
+  </Tab>
+
+  <Tab title="Railway">
+    1. Create a new project on [Railway](https://railway.app)
+    2. Connect your GitHub repository
+    3. Add a PostgreSQL database
+    4. Set environment variables
+    5. Deploy!
+
+    Railway will automatically:
+    - Install dependencies
+    - Run build commands
+    - Start your application
+  </Tab>
+</Tabs>
+
+## Post-Deployment
+
+<Steps>
+  <Step title="Test Your Deployment">
+    1. Visit your deployed URL
+    2. Create a test account
+    3. Set up a category and send a test event
+    4. Verify notifications are working
+  </Step>
+
+  <Step title="Set Up Monitoring">
+    Monitor your application health:
+    - Enable Vercel Analytics
+    - Set up error tracking (e.g., Sentry)
+    - Monitor database performance
+    - Track API response times
+  </Step>
+
+  <Step title="Configure Domain (Optional)">
+    Add a custom domain:
+    1. Purchase a domain from your preferred registrar
+    2. Add it in your hosting platform's dashboard
+    3. Update DNS records as instructed
+    4. Enable SSL (usually automatic)
+  </Step>
+</Steps>
+
+## Environment Variables Reference
+
+Here's a complete list of all environment variables:
+
+```bash .env
+# Database
+DATABASE_URL="postgresql://user:password@host:5432/pingpilot"
+
+# Authentication (Clerk)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
+CLERK_SECRET_KEY="sk_test_..."
+
+# Notifications
+DISCORD_BOT_TOKEN="your_discord_bot_token"
+TELEGRAM_BOT_TOKEN="your_telegram_bot_token"
+
+# Email (Optional)
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_USER="your-email@gmail.com"
+SMTP_PASSWORD="your-app-password"
+SMTP_FROM="noreply@pingpilot.com"
+
+# Payments (Optional)
+STRIPE_SECRET_KEY="sk_test_..."
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
+
+# Caching (Optional)
+REDIS_URL="your_upstash_redis_url"
+REDIS_TOKEN="your_upstash_redis_token"
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Database connection errors">
+    - Verify your `DATABASE_URL` is correct
+    - Check that your database server is running
+    - Ensure your IP is whitelisted (for hosted databases)
+    - Try connecting with `npx prisma db pull` to test the connection
+  </Accordion>
+
+  <Accordion title="Build failures">
+    - Clear `.next` folder: `rm -rf .next`
+    - Delete `node_modules` and reinstall: `rm -rf node_modules && npm install`
+    - Check that all environment variables are set
+    - Run `npx prisma generate` manually
+  </Accordion>
+
+  <Accordion title="Discord notifications not working">
+    - Verify your bot token is correct
+    - Ensure the bot has necessary permissions
+    - Check that Privileged Gateway Intents are enabled
+    - The bot must be able to send DMs to users
+  </Accordion>
+
+  <Accordion title="Port already in use">
+    Change the port in `package.json` or use:
+    ```bash
+    PORT=3001 npm run dev
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="code" href="/api/introduction">
+    Learn how to integrate PingPilot into your applications
+  </Card>
+  
+  <Card title="Architecture" icon="diagram-project" href="/installation">
+    Understand how PingPilot works under the hood
+  </Card>
+  
+  <Card title="Contributing" icon="github" href="https://github.com/vishnu-mouli-102408/ping-pilot">
+    Contribute to the PingPilot open-source project
+  </Card>
+  
+  <Card title="Support" icon="life-ring" href="https://github.com/vishnumouli/ping-pilot/issues">
+    Get help from the community or report issues
+  </Card>
+</CardGroup>
